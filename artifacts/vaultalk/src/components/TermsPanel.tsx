@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useGenerateContract, useReleasePayment, useGetRoom } from "@workspace/api-client-react";
+import { useGenerateContract, useReleasePayment, useGetRoom, getGetRoomQueryKey, type RoomStatus } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -41,9 +41,12 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
 
   // Poll room for escrow status so webhook-triggered releases appear automatically
   const { data: roomData } = useGetRoom(roomId, {
-    query: { refetchInterval: 10000 },
+    query: {
+      queryKey: getGetRoomQueryKey(roomId),
+      refetchInterval: 10000,
+    },
   });
-  const escrowStatus = (roomData as { escrow?: { status?: string } })?.escrow?.status ?? "empty";
+  const escrowStatus: string = (roomData as RoomStatus | undefined)?.escrow?.status ?? "empty";
 
   // Keep a ref to messages so the interval always uses the latest without re-registering
   const messagesRef = useRef<string[]>(messages);
