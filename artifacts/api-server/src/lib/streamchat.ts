@@ -20,7 +20,7 @@ export function getStreamClient(): StreamChat | null {
 export function createUserToken(userId: string): string | null {
   const client = getStreamClient();
   if (!client) return null;
-  return client.createUserToken(userId);
+  return client.createToken(userId);
 }
 
 export async function upsertUser(
@@ -31,7 +31,7 @@ export async function upsertUser(
   const client = getStreamClient();
   if (!client) return;
   try {
-    await client.upsertUser({ id: userId, name: userName, role });
+    await client.upsertUsers([{ id: userId, name: userName, role }]);
   } catch (err) {
     logger.error({ err, userId }, "Failed to upsert Stream user");
   }
@@ -45,12 +45,17 @@ export async function getOrCreateChannel(
   const client = getStreamClient();
   if (!client) return `room-${roomId}`;
 
-  const members = [clientId];
-  if (freelancerId) members.push(freelancerId);
-
   try {
+    // Ensure the bot user exists
+    await client.upsertUsers([
+      { id: "vaultalk-bot", name: "Vaultalk AI", role: "user" },
+    ]);
+
+    const members = [clientId, "vaultalk-bot"];
+    if (freelancerId) members.push(freelancerId);
+
     const channel = client.channel("messaging", roomId, {
-      name: `Vaultalk Room ${roomId}`,
+      name: `Vaultalk — Room ${roomId}`,
       members,
       created_by_id: clientId,
     });
@@ -62,11 +67,24 @@ export async function getOrCreateChannel(
   }
 }
 
+export async function addMemberToChannel(
+  roomId: string,
+  userId: string,
+): Promise<void> {
+  const client = getStreamClient();
+  if (!client) return;
+  try {
+    const channel = client.channel("messaging", roomId);
+    await channel.addMembers([userId]);
+  } catch (err) {
+    logger.error({ err, roomId, userId }, "Failed to add member to channel");
+  }
+}
+
 export async function sendSystemMessage(channelId: string, text: string): Promise<void> {
   const client = getStreamClient();
   if (!client) return;
   try {
-    await client.upsertUser({ id: "vaultalk-bot", name: "Vaultalk AI", role: "user" });
     const channel = client.channel("messaging", channelId);
     await channel.sendMessage({ text, user_id: "vaultalk-bot" });
   } catch (err) {

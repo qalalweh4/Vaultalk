@@ -30,3 +30,8 @@ externalPort = 80
 [[ports]]
 localPort = 25368
 externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+VITE_STREAM_API_KEY = "bf6em5g97mjh"
