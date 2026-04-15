@@ -84,8 +84,23 @@ export default function ChatView({ roomId, user, onMessagesUpdate }: ChatViewPro
         if (cancelled) return;
 
         const channel = chatClient.channel("messaging", roomId);
-        const state = await channel.watch();
-        if (cancelled) return;
+
+        // Retry watch() up to 10 times (30s) in case the channel is still being set up
+        let state: Awaited<ReturnType<typeof channel.watch>> | null = null;
+        for (let attempt = 0; attempt < 10; attempt++) {
+          if (cancelled) return;
+          try {
+            state = await channel.watch();
+            break;
+          } catch {
+            if (attempt < 9) {
+              await new Promise((r) => setTimeout(r, 3000));
+            } else {
+              throw new Error("Channel not available after 30s");
+            }
+          }
+        }
+        if (!state || cancelled) return;
 
         setChannelRef(channel);
         setStreamConnected(true);

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { JoinRoomBody, JoinRoomResponse } from "@workspace/api-zod";
 import * as store from "../lib/store";
-import { createUserToken, upsertUser, addMemberToChannel, isStreamEnabled } from "../lib/streamchat";
+import { createUserToken, upsertUser, ensureUserInChannel } from "../lib/streamchat";
 
 const router: IRouter = Router();
 
@@ -16,13 +16,13 @@ router.post("/auth/join", async (req, res): Promise<void> => {
   const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
   const userId = `${slug}-${Date.now()}`;
 
-  // Upsert user in Stream Chat (no-op if Stream not enabled)
+  // Upsert user in Stream Chat
   await upsertUser(userId, name, role);
 
-  // If room already has a channel, add this new user to it
-  if (isStreamEnabled() && store.getOrCreateRoom(roomId).participants.length > 0) {
-    await addMemberToChannel(roomId, userId);
-  }
+  // Always ensure this user is in the room's Stream channel.
+  // ensureUserInChannel creates the channel if it doesn't exist yet,
+  // or adds the user if the channel already exists. Safe to call for any role.
+  await ensureUserInChannel(roomId, userId, name);
 
   const streamToken = createUserToken(userId);
 

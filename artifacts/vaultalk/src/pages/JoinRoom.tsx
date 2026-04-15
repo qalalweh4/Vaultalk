@@ -41,15 +41,17 @@ export default function JoinRoom() {
         userId: string; streamToken: string | null;
       };
 
-      const clientId = role === "client" ? joinRes.userId : undefined;
-      const freelancerId = role === "freelancer" ? joinRes.userId : undefined;
-      await createRoom.mutateAsync({
-        data: {
-          roomId: trimmedRoom,
-          clientId: clientId ?? `client-placeholder-${trimmedRoom}`,
-          freelancerId: freelancerId ?? null,
-        },
-      });
+      // Only the client calls createRoom — this sets up the channel with a system message.
+      // Freelancers are already added to the channel by the backend during auth/join.
+      if (role === "client") {
+        await createRoom.mutateAsync({
+          data: {
+            roomId: trimmedRoom,
+            clientId: joinRes.userId,
+            freelancerId: null,
+          },
+        });
+      }
 
       setUser({
         userId: joinRes.userId,
