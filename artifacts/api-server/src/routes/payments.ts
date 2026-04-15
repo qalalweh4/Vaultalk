@@ -55,7 +55,7 @@ router.post("/payments/release", async (req, res): Promise<void> => {
     if (isFirst) {
       sendSystemMessage(
         roomId,
-        "🎉 Payment released to freelancer. Deal complete! Vaultalk thanks you for using trusted AI negotiations.",
+        "🎉 Payment released to merchant. Deal complete! Vaultalk thanks you for using trusted AI negotiations.",
       ).catch(() => {});
     }
   }

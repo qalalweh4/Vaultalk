@@ -59,11 +59,13 @@ router.post("/contract/generate", async (req, res): Promise<void> => {
   const room = store.getOrCreateRoom(roomId);
   const client = room.participants.find((p) => p.role === "client");
   const freelancer = room.participants.find((p) => p.role === "freelancer");
+  const sellerAccount = store.getAccountById(room.sellerId ?? "");
+  const merchantName = sellerAccount?.username ?? freelancer?.userName ?? "Merchant";
 
   const contractText = generateContractText(
     terms,
     client?.userName ?? "Client",
-    freelancer?.userName ?? "Freelancer",
+    merchantName,
     roomId,
   );
 
@@ -111,10 +113,14 @@ router.post("/contract/export", async (req, res): Promise<void> => {
     summary: null,
   };
 
+  const exportRoom = store.getOrCreateRoom(roomId);
+  const exportSellerAccount = store.getAccountById(exportRoom.sellerId ?? "");
+  const exportMerchantName = exportSellerAccount?.username ?? freelancerName;
+
   const pdfBuffer = await generateBilingualPdf(
     fullTerms,
     clientName,
-    freelancerName,
+    exportMerchantName,
     roomId,
   );
 
@@ -134,12 +140,14 @@ router.post("/contract/download-pdf", async (req, res): Promise<void> => {
 
   const { roomId, terms, clientName, freelancerName } = parsed.data;
 
-  // Prefer names stored server-side if available
+  // Prefer names stored server-side if available; use seller username as merchant name
   const room = store.getOrCreateRoom(roomId);
   const clientParticipant = room.participants.find((p) => p.role === "client");
   const freelancerParticipant = room.participants.find((p) => p.role === "freelancer");
+  const downloadSellerAccount = store.getAccountById(room.sellerId ?? "");
   const resolvedClientName = clientParticipant?.userName ?? clientName;
-  const resolvedFreelancerName = freelancerParticipant?.userName ?? freelancerName;
+  const resolvedFreelancerName =
+    downloadSellerAccount?.username ?? freelancerParticipant?.userName ?? freelancerName;
 
   const fullTerms: ContractTerms = {
     price: terms.price,

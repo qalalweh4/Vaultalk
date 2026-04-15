@@ -21,7 +21,7 @@ interface SendContractModalProps {
   user: UserData;
   terms: ContractTerms | null;
   clientName: string;
-  freelancerName: string;
+  merchantName: string;
 }
 
 export default function SendContractModal({
@@ -31,7 +31,7 @@ export default function SendContractModal({
   user,
   terms,
   clientName,
-  freelancerName,
+  merchantName,
 }: SendContractModalProps) {
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
@@ -48,7 +48,7 @@ export default function SendContractModal({
         body: JSON.stringify({
           roomId,
           clientName,
-          freelancerName,
+          freelancerName: merchantName,
           terms: {
             price: terms.price ?? null,
             currency: terms.currency ?? "SAR",

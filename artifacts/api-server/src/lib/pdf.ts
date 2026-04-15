@@ -29,7 +29,7 @@ const AMIRI_FONT = resolveAmiriFont();
 export async function generateBilingualPdf(
   terms: ContractTerms,
   clientName: string,
-  freelancerName: string,
+  merchantName: string,
   roomId: string,
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -41,7 +41,7 @@ export async function generateBilingualPdf(
       info: {
         Title: `Vaultalk Contract — ${roomId}`,
         Author: "Vaultalk AI",
-        Subject: "Bilingual Freelance Service Agreement",
+        Subject: "Bilingual Service Agreement",
       },
     });
 
@@ -51,11 +51,11 @@ export async function generateBilingualPdf(
 
     doc.registerFont("Amiri", AMIRI_FONT);
 
-    renderEnglishSection(doc, terms, clientName, freelancerName, roomId);
+    renderEnglishSection(doc, terms, clientName, merchantName, roomId);
 
     doc.addPage();
 
-    renderArabicSection(doc, terms, clientName, freelancerName, roomId);
+    renderArabicSection(doc, terms, clientName, merchantName, roomId);
 
     doc.end();
   });
@@ -65,7 +65,7 @@ function renderEnglishSection(
   doc: InstanceType<typeof PDFDocument>,
   terms: ContractTerms,
   clientName: string,
-  freelancerName: string,
+  merchantName: string,
   roomId: string,
 ): void {
   const pageWidth = doc.page.width;
@@ -128,7 +128,7 @@ function renderEnglishSection(
     .fillColor("#111827");
 
   doc.text(`Client:      ${clientName}`, margin + 10, doc.y);
-  doc.text(`Freelancer:  ${freelancerName}`, margin + 10, doc.y);
+  doc.text(`Merchant:    ${merchantName}`, margin + 10, doc.y);
 
   doc.moveDown(1);
 
@@ -269,7 +269,7 @@ function renderArabicSection(
   doc: InstanceType<typeof PDFDocument>,
   terms: ContractTerms,
   clientName: string,
-  freelancerName: string,
+  merchantName: string,
   roomId: string,
 ): void {
   const pageWidth = doc.page.width;
@@ -332,7 +332,7 @@ function renderArabicSection(
     width: contentWidth,
     align: "right",
   });
-  doc.text(`المستقل:  ${freelancerName}`, margin, doc.y, {
+  doc.text(`التاجر:   ${merchantName}`, margin, doc.y, {
     width: contentWidth,
     align: "right",
   });

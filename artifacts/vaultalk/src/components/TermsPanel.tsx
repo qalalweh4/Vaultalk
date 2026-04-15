@@ -254,7 +254,7 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
         user={user}
         terms={terms}
         clientName={user.role === "client" ? user.userName : "Client"}
-        freelancerName={user.role === "freelancer" ? user.userName : "Freelancer"}
+        merchantName={user.role === "freelancer" ? user.userName : "Merchant"}
       />
     </aside>
   );

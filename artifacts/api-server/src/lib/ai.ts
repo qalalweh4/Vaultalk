@@ -116,7 +116,7 @@ export async function extractTerms(messages: string[]): Promise<ContractTerms> {
 export function generateContractTextArabic(
   terms: ContractTerms,
   clientName: string,
-  freelancerName: string,
+  merchantName: string,
   roomId: string,
 ): string {
   const date = new Date().toLocaleDateString("ar-SA", {
@@ -138,7 +138,7 @@ export function generateContractTextArabic(
 
 الأطراف:
   العميل:     ${clientName}
-  المستقل:    ${freelancerName}
+  التاجر:     ${merchantName}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 الشروط المتفق عليها
@@ -177,7 +177,7 @@ ${deliverablesText}
 export function generateContractText(
   terms: ContractTerms,
   clientName: string,
-  freelancerName: string,
+  merchantName: string,
   roomId: string,
 ): string {
   const date = new Date().toLocaleDateString("en-SA", {
@@ -199,7 +199,7 @@ Date: ${date}
 
 PARTIES:
   Client:     ${clientName}
-  Freelancer: ${freelancerName}
+  Merchant:   ${merchantName}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 AGREED TERMS
