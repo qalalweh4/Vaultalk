@@ -72,6 +72,8 @@
     "vaul": "^1.1.2",
     "vite": "catalog:",
     "wouter": "^3.3.5",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "stream-chat": "^8.53.0",
+    "stream-chat-react": "^12.9.1"
   }
 }

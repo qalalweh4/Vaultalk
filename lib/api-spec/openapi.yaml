@@ -1,22 +1,29 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Vaultalk API - AI-witnessed contract negotiations
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: rooms
+    description: Negotiation rooms
+  - name: contract
+    description: Contract generation
+  - name: payments
+    description: Escrow payments via StreamPay
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +31,176 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/join:
+    post:
+      operationId: joinRoom
+      tags: [auth]
+      summary: Join a negotiation room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinRoomBody"
+      responses:
+        "200":
+          description: User joined successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JoinRoomResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rooms/create:
+    post:
+      operationId: createRoom
+      tags: [rooms]
+      summary: Create a negotiation room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoomBody"
+      responses:
+        "200":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateRoomResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rooms/{roomId}:
+    get:
+      operationId: getRoom
+      tags: [rooms]
+      summary: Get room status and escrow info
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Room info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomStatus"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /contract/generate:
+    post:
+      operationId: generateContract
+      tags: [contract]
+      summary: Extract contract terms from conversation using AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateContractBody"
+      responses:
+        "200":
+          description: Contract terms extracted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateContractResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /contract/export:
+    post:
+      operationId: exportContract
+      tags: [contract]
+      summary: Export contract as plain text document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportContractBody"
+      responses:
+        "200":
+          description: Contract document text
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportContractResponse"
+
+  /payments/lock:
+    post:
+      operationId: lockPayment
+      tags: [payments]
+      summary: Create StreamPay payment link and lock escrow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LockPaymentBody"
+      responses:
+        "200":
+          description: Payment locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LockPaymentResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/release:
+    post:
+      operationId: releasePayment
+      tags: [payments]
+      summary: Release escrow payment to freelancer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReleasePaymentBody"
+      responses:
+        "200":
+          description: Payment released
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReleasePaymentResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +211,252 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    JoinRoomBody:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+          enum: [client, freelancer]
+        roomId:
+          type: string
+      required:
+        - name
+        - role
+        - roomId
+
+    JoinRoomResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        userName:
+          type: string
+        role:
+          type: string
+        streamToken:
+          type: ["string", "null"]
+        roomId:
+          type: string
+      required:
+        - userId
+        - userName
+        - role
+        - streamToken
+        - roomId
+
+    CreateRoomBody:
+      type: object
+      properties:
+        clientId:
+          type: string
+        freelancerId:
+          type: ["string", "null"]
+        roomId:
+          type: string
+      required:
+        - clientId
+        - roomId
+
+    CreateRoomResponse:
+      type: object
+      properties:
+        roomId:
+          type: string
+        channelId:
+          type: string
+        streamEnabled:
+          type: boolean
+      required:
+        - roomId
+        - channelId
+        - streamEnabled
+
+    RoomStatus:
+      type: object
+      properties:
+        roomId:
+          type: string
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Participant"
+        escrow:
+          $ref: "#/components/schemas/EscrowInfo"
+        streamEnabled:
+          type: boolean
+      required:
+        - roomId
+        - participants
+        - streamEnabled
+
+    Participant:
+      type: object
+      properties:
+        userId:
+          type: string
+        userName:
+          type: string
+        role:
+          type: string
+      required:
+        - userId
+        - userName
+        - role
+
+    EscrowInfo:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [empty, locked, released, disputed]
+        amount:
+          type: ["number", "null"]
+        currency:
+          type: ["string", "null"]
+        paymentLinkUrl:
+          type: ["string", "null"]
+        clientId:
+          type: ["string", "null"]
+        freelancerId:
+          type: ["string", "null"]
+      required:
+        - status
+
+    ContractTerms:
+      type: object
+      properties:
+        price:
+          type: ["number", "null"]
+        currency:
+          type: string
+        deliverables:
+          type: array
+          items:
+            type: string
+        deadline:
+          type: ["string", "null"]
+        revisions:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [negotiating, near-agreement, agreed]
+      required:
+        - currency
+        - deliverables
+        - status
+
+    GenerateContractBody:
+      type: object
+      properties:
+        roomId:
+          type: string
+        messages:
+          type: array
+          items:
+            type: string
+      required:
+        - roomId
+        - messages
+
+    GenerateContractResponse:
+      type: object
+      properties:
+        terms:
+          $ref: "#/components/schemas/ContractTerms"
+        contractText:
+          type: string
+      required:
+        - terms
+        - contractText
+
+    ExportContractBody:
+      type: object
+      properties:
+        roomId:
+          type: string
+        terms:
+          $ref: "#/components/schemas/ContractTerms"
+        clientName:
+          type: string
+        freelancerName:
+          type: string
+      required:
+        - roomId
+        - terms
+        - clientName
+        - freelancerName
+
+    ExportContractResponse:
+      type: object
+      properties:
+        contractText:
+          type: string
+        fileName:
+          type: string
+      required:
+        - contractText
+        - fileName
+
+    LockPaymentBody:
+      type: object
+      properties:
+        roomId:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        clientId:
+          type: string
+        freelancerId:
+          type: string
+        description:
+          type: string
+      required:
+        - roomId
+        - amount
+        - currency
+        - clientId
+        - freelancerId
+
+    LockPaymentResponse:
+      type: object
+      properties:
+        paymentLinkUrl:
+          type: ["string", "null"]
+        escrow:
+          $ref: "#/components/schemas/EscrowInfo"
+        streamPayEnabled:
+          type: boolean
+      required:
+        - escrow
+        - streamPayEnabled
+
+    ReleasePaymentBody:
+      type: object
+      properties:
+        roomId:
+          type: string
+      required:
+        - roomId
+
+    ReleasePaymentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        escrow:
+          $ref: "#/components/schemas/EscrowInfo"
+      required:
+        - success
+        - escrow

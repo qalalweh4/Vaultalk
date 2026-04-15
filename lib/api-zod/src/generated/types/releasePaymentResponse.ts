@@ -5,7 +5,9 @@
  * Vaultalk API - AI-witnessed contract negotiations
  * OpenAPI spec version: 0.1.0
  */
+import type { EscrowInfo } from "./escrowInfo";
 
-export interface HealthStatus {
-  status: string;
+export interface ReleasePaymentResponse {
+  success: boolean;
+  escrow: EscrowInfo;
 }

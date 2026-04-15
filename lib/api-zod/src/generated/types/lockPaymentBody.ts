@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface LockPaymentBody {
+  roomId: string;
+  amount: number;
+  currency: string;
+  clientId: string;
+  freelancerId: string;
+  description?: string;
 }

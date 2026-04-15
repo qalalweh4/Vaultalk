@@ -5,7 +5,10 @@
  * Vaultalk API - AI-witnessed contract negotiations
  * OpenAPI spec version: 0.1.0
  */
+import type { JoinRoomBodyRole } from "./joinRoomBodyRole";
 
-export interface HealthStatus {
-  status: string;
+export interface JoinRoomBody {
+  name: string;
+  role: JoinRoomBodyRole;
+  roomId: string;
 }

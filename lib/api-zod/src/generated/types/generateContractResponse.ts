@@ -5,7 +5,9 @@
  * Vaultalk API - AI-witnessed contract negotiations
  * OpenAPI spec version: 0.1.0
  */
+import type { ContractTerms } from "./contractTerms";
 
-export interface HealthStatus {
-  status: string;
+export interface GenerateContractResponse {
+  terms: ContractTerms;
+  contractText: string;
 }
