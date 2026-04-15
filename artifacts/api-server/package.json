@@ -16,7 +16,7 @@
     "cors": "^2",
     "drizzle-orm": "catalog:",
     "express": "^5",
-    "openai": "^4.98.0",
+    "@anthropic-ai/sdk": "^0.39.0",
     "pino": "^9",
     "pino-http": "^10",
     "stream-chat": "^8.53.0"

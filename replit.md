@@ -12,7 +12,7 @@ Built for Streamathon hackathon by StreamPay.sa (Saudi fintech). Freelancers and
 ### Tech Stack
 - **Frontend**: React 19 + Vite + Tailwind CSS v4 + shadcn/ui + wouter routing
 - **Backend**: Express 5 + TypeScript, compiled with esbuild
-- **AI**: Replit AI proxy → OpenAI (gpt-4o-mini) via `AI_INTEGRATIONS_OPENAI_BASE_URL` + `AI_INTEGRATIONS_OPENAI_API_KEY`
+- **AI**: Replit AI proxy → Claude (claude-haiku-4-5) via `AI_INTEGRATIONS_ANTHROPIC_BASE_URL` + `AI_INTEGRATIONS_ANTHROPIC_API_KEY` (auto-provisioned, no key needed)
 - **Chat**: getstream.io Stream Chat (SDK: `stream-chat`) — graceful fallback to demo mode when `STREAM_API_KEY` / `STREAM_API_SECRET` not set
 - **Payments**: StreamPay.sa API (`x-api-key: STREAMPAY_API_KEY`) — graceful fallback to demo mode
 - **State**: All in-memory (no DB — hackathon scope)

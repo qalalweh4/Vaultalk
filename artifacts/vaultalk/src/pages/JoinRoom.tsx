@@ -184,7 +184,7 @@ export default function JoinRoom() {
 
         <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <Sparkles className="w-3 h-3 text-primary" />
-          <span>Powered by Replit AI · StreamPay · Stream Chat</span>
+          <span>Powered by Claude AI · StreamPay · Stream Chat</span>
         </div>
       </div>
     </div>

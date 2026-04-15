@@ -1,14 +1,14 @@
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "./logger";
 
-let _client: OpenAI | null = null;
+let _client: Anthropic | null = null;
 
-function getClient(): OpenAI | null {
-  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
-  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+function getClient(): Anthropic | null {
+  const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
+  const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
   if (!baseURL || !apiKey) return null;
   if (!_client) {
-    _client = new OpenAI({ baseURL, apiKey });
+    _client = new Anthropic({ baseURL, apiKey });
   }
   return _client;
 }
@@ -20,6 +20,8 @@ export interface ContractTerms {
   deadline: string | null;
   revisions: number | null;
   status: "negotiating" | "near-agreement" | "agreed";
+  confidence: number;
+  summary: string | null;
 }
 
 const DEFAULT_TERMS: ContractTerms = {
@@ -29,49 +31,84 @@ const DEFAULT_TERMS: ContractTerms = {
   deadline: null,
   revisions: null,
   status: "negotiating",
+  confidence: 0,
+  summary: null,
 };
+
+const SYSTEM_PROMPT = `You are a contract term extractor for a freelance negotiation platform called Vaultalk.
+Read the negotiation chat and extract the current agreed terms. Be precise and only extract terms that have been explicitly stated or agreed upon.
+
+Return ONLY a valid JSON object with exactly these keys:
+- price: number or null (the agreed payment amount)
+- currency: string (currency code, default "SAR")
+- deliverables: string[] (list of deliverables/work items)
+- deadline: string or null (deadline or timeline as stated)
+- revisions: number or null (number of revisions included)
+- status: one of "negotiating" | "near-agreement" | "agreed"
+  - "negotiating": still discussing, no clear agreement
+  - "near-agreement": terms are close, minor points left
+  - "agreed": both parties have explicitly agreed or used /agree
+- confidence: number between 0 and 1 (how confident you are in the extraction)
+- summary: string or null (one sentence summary of current negotiation state)
+
+Return ONLY the JSON object. No explanation, no markdown, no code blocks.`;
+
+function extractJson(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{")) return trimmed;
+  const match = trimmed.match(/\{[\s\S]*\}/);
+  return match ? match[0] : trimmed;
+}
 
 export async function extractTerms(messages: string[]): Promise<ContractTerms> {
   const client = getClient();
   if (!client || messages.length === 0) return DEFAULT_TERMS;
 
-  const conversation = messages.slice(-50).join("\n");
+  const conversation = messages.slice(-60).join("\n");
 
   try {
-    const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 8192,
+      system: SYSTEM_PROMPT,
       messages: [
         {
-          role: "system",
-          content: `You are a contract term extractor for a freelance negotiation platform. Read this negotiation chat and extract the current agreed terms.
-Return ONLY valid JSON with keys: price (number or null), currency (string, default SAR), deliverables (string[]), deadline (string or null), revisions (number or null), status ('negotiating'|'near-agreement'|'agreed').
-If a term has not been discussed, set it to null. Never add commentary. Only return the JSON object.`,
+          role: "user",
+          content: `Extract contract terms from this negotiation chat:\n\n${conversation}`,
         },
         {
-          role: "user",
-          content: conversation,
+          role: "assistant",
+          content: "{",
         },
       ],
-      response_format: { type: "json_object" },
-      max_tokens: 300,
     });
 
-    const content = response.choices[0]?.message?.content;
-    if (!content) return DEFAULT_TERMS;
+    const block = response.content[0];
+    if (block.type !== "text") return DEFAULT_TERMS;
 
+    const rawJson = "{" + block.text;
+    const content = extractJson(rawJson);
     const parsed = JSON.parse(content) as Partial<ContractTerms>;
+
     return {
       price: typeof parsed.price === "number" ? parsed.price : null,
-      currency: typeof parsed.currency === "string" ? parsed.currency : "SAR",
+      currency: typeof parsed.currency === "string" && parsed.currency ? parsed.currency : "SAR",
       deliverables: Array.isArray(parsed.deliverables) ? parsed.deliverables : [],
       deadline: typeof parsed.deadline === "string" ? parsed.deadline : null,
       revisions: typeof parsed.revisions === "number" ? parsed.revisions : null,
-      status: ["negotiating", "near-agreement", "agreed"].includes(parsed.status ?? "")
+      status: (["negotiating", "near-agreement", "agreed"] as const).includes(
+        parsed.status as "negotiating" | "near-agreement" | "agreed"
+      )
         ? (parsed.status as ContractTerms["status"])
         : "negotiating",
+      confidence:
+        typeof parsed.confidence === "number"
+          ? Math.min(1, Math.max(0, parsed.confidence))
+          : 0,
+      summary: typeof parsed.summary === "string" ? parsed.summary : null,
     };
   } catch (err) {
-    logger.error({ err }, "Failed to extract contract terms");
+    logger.error({ err }, "Claude contract extraction failed");
     return DEFAULT_TERMS;
   }
 }
@@ -123,16 +160,16 @@ in escrow via StreamPay and will be released upon completion and approval
 of all deliverables.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-AI WITNESS CERTIFICATE
+AI WITNESS CERTIFICATE — Powered by Claude AI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-This agreement was negotiated and witnessed by Vaultalk AI.
+This agreement was negotiated and witnessed by Vaultalk AI (Claude).
 The AI Witness extracted and verified all terms from the negotiation
 transcript in room ${roomId}.
 
 Both parties have digitally confirmed these terms via the Vaultalk platform.
 
 Powered by Vaultalk — Trusted AI Contract Negotiations
-Built on StreamPay | Streamathon 2025
+Built on StreamPay · Stream Chat · Claude AI | Streamathon 2025
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 }
