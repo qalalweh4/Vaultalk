@@ -48,6 +48,28 @@ const accountsById = new Map<string, Account>();
 const sellerRooms = new Map<string, string[]>(); // sellerId -> roomIds
 const buyerRooms = new Map<string, string[]>(); // buyerId -> roomIds
 
+// ── Demo accounts seeded at startup ───────────────────────────────────────
+// These match the vaultalkUsername values used in the Souk market seed data.
+function seedAccounts() {
+  const demos: Array<{ username: string; password: string; role: "buyer" | "seller"; displayName: string }> = [
+    { username: "sara2",        password: "demo123", role: "seller", displayName: "Sara Mohammed" },
+    { username: "sara_designs", password: "demo123", role: "seller", displayName: "Sara Designs Studio" },
+    { username: "demo_buyer",   password: "demo123", role: "buyer",  displayName: "Ahmed Al-Rashid" },
+  ];
+  for (const d of demos) {
+    if (!accounts.has(d.username)) {
+      const userId = `${d.role}_${d.username}`;
+      const token = [...Array(40)].map(() => Math.random().toString(36)[2]).join("");
+      const account: Account = { userId, username: d.username, password: d.password, role: d.role, displayName: d.displayName, token };
+      accounts.set(d.username, account);
+      accountsByToken.set(token, account);
+      accountsById.set(userId, account);
+    }
+  }
+}
+
+seedAccounts();
+
 // Track which rooms have already had their "terms agreed" notification sent
 const agreedNotified = new Set<string>();
 
