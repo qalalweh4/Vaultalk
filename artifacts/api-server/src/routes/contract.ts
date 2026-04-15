@@ -33,11 +33,21 @@ router.post("/contract/generate", async (req, res): Promise<void> => {
     roomId,
   );
 
-  if (terms.status === "agreed" && isStreamEnabled()) {
-    await sendSystemMessage(
-      roomId,
-      `✅ AI Witness: Terms are aligned! Price: ${terms.price} ${terms.currency}. Both parties can type /agree to lock this contract.`,
-    );
+  // Send system message when terms reach agreement — only ONCE per room,
+  // and as a non-blocking fire-and-forget so it never delays the response.
+  if (isStreamEnabled()) {
+    if (terms.status === "agreed") {
+      const isFirst = store.markAgreedNotified(roomId);
+      if (isFirst) {
+        sendSystemMessage(
+          roomId,
+          `✅ AI Witness: Terms are aligned! Price: ${terms.price} ${terms.currency}. Click "Lock Payment in Escrow" to secure the deal.`,
+        ).catch(() => {});
+      }
+    } else {
+      // If status drops back (more negotiation), allow a future re-notify
+      store.clearAgreedNotified(roomId);
+    }
   }
 
   res.json({ terms, contractText });

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useGenerateContract, useReleasePayment } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,10 +37,14 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
   const generateContract = useGenerateContract();
   const releasePayment = useReleasePayment();
 
+  // Keep a ref to messages so the interval always uses the latest without re-registering
+  const messagesRef = useRef<string[]>(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
   const poll = useCallback(() => {
-    if (messages.length === 0) return;
+    if (messagesRef.current.length === 0) return;
     generateContract.mutate(
-      { data: { roomId, messages } },
+      { data: { roomId, messages: messagesRef.current } },
       {
         onSuccess: (res) => {
           const r = res as { terms?: ContractTerms };
@@ -49,12 +53,14 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
         },
       }
     );
-  }, [messages, roomId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
 
   useEffect(() => {
-    poll();
-    const id = setInterval(poll, 15000);
-    return () => clearInterval(id);
+    // Initial poll after 3s (let chat load first), then every 20s
+    const initial = setTimeout(poll, 3000);
+    const id = setInterval(poll, 20000);
+    return () => { clearTimeout(initial); clearInterval(id); };
   }, [poll]);
 
   const handleRelease = () => {
