@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { CreateRoomBody } from "@workspace/api-zod";
 import * as store from "../lib/store";
-import { getOrCreateChannel, sendSystemMessage, isStreamEnabled, ensureUserInChannel, upsertUser } from "../lib/streamchat";
+import { getOrCreateChannel, sendSystemMessage, sendMessageAs, isStreamEnabled, ensureUserInChannel, upsertUser } from "../lib/streamchat";
 
 const router: IRouter = Router();
 
@@ -53,6 +53,14 @@ router.post("/rooms/request", async (req, res): Promise<void> => {
       roomId,
       `🤝 ${buyer.displayName} opened a Vaultalk negotiation room with ${seller.displayName}. The AI Witness is now active — it will extract contract terms as you negotiate.`,
     );
+
+    // Auto-send buyer's intro message with the product details from Souk
+    if (description || amount) {
+      const priceText = amount ? ` at **${Number(amount).toLocaleString()} ${currency ?? "SAR"}**` : "";
+      const itemText = description ? `"${description}"` : "your listing";
+      const introMsg = `Hi ${seller.displayName}! 👋 I'm interested in ${itemText}${priceText} from Souk Marketplace. I'd love to discuss the details and finalize the terms through Vaultalk. Looking forward to working with you!`;
+      await sendMessageAs(roomId, introMsg, buyer.userId);
+    }
   }
 
   res.json({ roomId, channelId: `room-${roomId}`, streamEnabled: isStreamEnabled() });

@@ -141,3 +141,18 @@ export async function sendSystemMessage(
     logger.error({ err, channelId }, "Failed to send system message");
   }
 }
+
+export async function sendMessageAs(
+  channelId: string,
+  text: string,
+  userId: string,
+): Promise<void> {
+  const client = getStreamClient();
+  if (!client) return;
+  try {
+    const channel = client.channel("messaging", channelId);
+    await channel.sendMessage({ text, user_id: userId });
+  } catch (err) {
+    logger.error({ err, channelId, userId }, "Failed to send user message");
+  }
+}
