@@ -33,6 +33,7 @@ export interface Escrow {
   currency: string | null;
   status: "empty" | "locked" | "released" | "disputed";
   paymentLinkUrl: string | null;
+  paymentLinkId: string | null;
   clientId: string | null;
   freelancerId: string | null;
 }
@@ -40,6 +41,7 @@ export interface Escrow {
 const users = new Map<string, User>();
 const rooms = new Map<string, Room>();
 const escrows = new Map<string, Escrow>();
+const linkRoomMap = new Map<string, string>(); // paymentLinkId → roomId
 
 // Account management
 const accounts = new Map<string, Account>(); // by username
@@ -169,6 +171,7 @@ function initEscrow(roomId: string) {
       currency: null,
       status: "empty",
       paymentLinkUrl: null,
+      paymentLinkId: null,
       clientId: null,
       freelancerId: null,
     });
@@ -247,6 +250,7 @@ export function lockEscrow(
   paymentLinkUrl: string | null,
   clientId: string,
   freelancerId: string,
+  paymentLinkId?: string | null,
 ): Escrow {
   const escrow: Escrow = {
     roomId,
@@ -254,11 +258,17 @@ export function lockEscrow(
     currency,
     status: "locked",
     paymentLinkUrl,
+    paymentLinkId: paymentLinkId ?? null,
     clientId,
     freelancerId,
   };
   escrows.set(roomId, escrow);
+  if (paymentLinkId) linkRoomMap.set(paymentLinkId, roomId);
   return escrow;
+}
+
+export function getRoomIdByLinkId(linkId: string): string | undefined {
+  return linkRoomMap.get(linkId);
 }
 
 export function releaseEscrow(roomId: string): Escrow {

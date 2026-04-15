@@ -22,7 +22,7 @@ router.post("/payments/lock", async (req, res): Promise<void> => {
     description ?? `Vaultalk escrow — Room ${roomId}`,
   );
 
-  const escrow = store.lockEscrow(roomId, amount, currency, result.url, clientId, freelancerId);
+  const escrow = store.lockEscrow(roomId, amount, currency, result.url, clientId, freelancerId, result.id ?? null);
 
   // Payment link message is client-only — the freelancer doesn't need to see the link
   if (isStreamEnabled()) {
@@ -61,6 +61,44 @@ router.post("/payments/release", async (req, res): Promise<void> => {
   }
 
   res.json({ success: true, escrow });
+});
+
+// TODO production: verify StreamPay webhook signature here before trusting this payload
+router.post("/payments/webhook", async (req, res): Promise<void> => {
+  const payload = req.body ?? {};
+  const linkId: string | undefined = payload.payment_link_id ?? payload.id ?? payload.linkId;
+  const status: string = (payload.status ?? "").toUpperCase();
+
+  res.json({ received: true });
+
+  if (!linkId) return;
+
+  const roomId = store.getRoomIdByLinkId(linkId);
+  if (!roomId) return;
+
+  const SUCCESS_STATUSES = ["PAID", "COMPLETED", "SUCCESS"];
+  const FAILURE_STATUSES = ["FAILED", "EXPIRED", "CANCELLED"];
+
+  if (SUCCESS_STATUSES.includes(status)) {
+    store.releaseEscrow(roomId);
+    if (isStreamEnabled()) {
+      const isFirst = store.markReleaseNotified(roomId);
+      if (isFirst) {
+        sendSystemMessage(
+          roomId,
+          "🟢 StreamPay confirmed payment received. Escrow released — deal complete!",
+        ).catch(() => {});
+      }
+    }
+  } else if (FAILURE_STATUSES.includes(status)) {
+    store.disputeEscrow(roomId);
+    if (isStreamEnabled()) {
+      sendSystemMessage(
+        roomId,
+        "🔴 StreamPay reported a payment failure. Funds remain frozen.",
+      ).catch(() => {});
+    }
+  }
 });
 
 export default router;

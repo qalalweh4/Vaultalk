@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useGenerateContract, useReleasePayment } from "@workspace/api-client-react";
+import { useGenerateContract, useReleasePayment, useGetRoom } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
   Sparkles, DollarSign, Calendar, RefreshCw, CheckCircle,
-  AlertCircle, Loader2, FileCheck, Unlock,
+  AlertCircle, Loader2, FileCheck, Unlock, XCircle,
 } from "lucide-react";
 import ContractModal from "@/components/ContractModal";
 import SendContractModal from "@/components/SendContractModal";
@@ -38,6 +38,12 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
 
   const generateContract = useGenerateContract();
   const releasePayment = useReleasePayment();
+
+  // Poll room for escrow status so webhook-triggered releases appear automatically
+  const { data: roomData } = useGetRoom(roomId, {
+    query: { refetchInterval: 10000 },
+  });
+  const escrowStatus = (roomData as { escrow?: { status?: string } })?.escrow?.status ?? "empty";
 
   // Keep a ref to messages so the interval always uses the latest without re-registering
   const messagesRef = useRef<string[]>(messages);
@@ -195,7 +201,27 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
           View Full Contract
         </Button>
 
-        {user.role === "client" && (
+        {user.role === "client" && escrowStatus === "released" && (
+          <div
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium"
+            data-testid="badge-escrow-released"
+          >
+            <CheckCircle className="w-4 h-4 flex-shrink-0" />
+            Payment released via StreamPay
+          </div>
+        )}
+
+        {user.role === "client" && escrowStatus === "disputed" && (
+          <div
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium"
+            data-testid="badge-escrow-disputed"
+          >
+            <XCircle className="w-4 h-4 flex-shrink-0" />
+            Payment failed — funds frozen
+          </div>
+        )}
+
+        {user.role === "client" && escrowStatus === "locked" && (
           <Button
             size="sm"
             variant="outline"
