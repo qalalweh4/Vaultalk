@@ -62,8 +62,23 @@ async function createProduct(
 }
 
 /**
+ * Derive the public webhook URL so StreamPay can POST payment events back to us.
+ * Uses WEBHOOK_BASE_URL env var if set (production), falls back to REPLIT_DEV_DOMAIN
+ * (Replit dev environment), or null if neither is available.
+ */
+function resolveWebhookUrl(): string | null {
+  if (process.env.WEBHOOK_BASE_URL) {
+    return `${process.env.WEBHOOK_BASE_URL.replace(/\/$/, "")}/api/payments/webhook`;
+  }
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    return `https://${process.env.REPLIT_DEV_DOMAIN}/api/payments/webhook`;
+  }
+  return null;
+}
+
+/**
  * Step 2 — Create a payment link for the given product.
- * The link is general-purpose (no consumer pre-set) so the payer enters details at checkout.
+ * Passes our webhook URL so StreamPay posts payment events back automatically.
  */
 async function createLink(
   productId: string,
@@ -71,6 +86,8 @@ async function createLink(
   currency: string,
   name: string,
 ): Promise<PaymentLinkResult> {
+  const webhookUrl = resolveWebhookUrl();
+
   try {
     const resp = await fetch(`${STREAMPAY_BASE_URL}/api/v2/payment_links`, {
       method: "POST",
@@ -83,6 +100,7 @@ async function createLink(
         contact_information_type: "PHONE",
         max_number_of_payments: 1,
         custom_metadata: { source: "vaultalk", amount, currency },
+        ...(webhookUrl ? { webhook_url: webhookUrl, callback_url: webhookUrl } : {}),
       }),
     });
 
