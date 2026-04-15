@@ -39,7 +39,7 @@ export async function extractTerms(messages: string[]): Promise<ContractTerms> {
 
   try {
     const response = await client.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
