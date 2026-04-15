@@ -5,12 +5,26 @@ export interface User {
   roomId: string;
 }
 
+export interface Account {
+  userId: string;
+  username: string;
+  password: string;
+  role: "buyer" | "seller";
+  displayName: string;
+  token: string;
+}
+
 export interface Room {
   roomId: string;
   channelId: string;
   participants: User[];
   messages: string[];
   createdAt: Date;
+  buyerId?: string;
+  sellerId?: string;
+  description?: string;
+  requestAmount?: number;
+  requestCurrency?: string;
 }
 
 export interface Escrow {
@@ -26,6 +40,13 @@ export interface Escrow {
 const users = new Map<string, User>();
 const rooms = new Map<string, Room>();
 const escrows = new Map<string, Escrow>();
+
+// Account management
+const accounts = new Map<string, Account>(); // by username
+const accountsByToken = new Map<string, Account>();
+const accountsById = new Map<string, Account>();
+const sellerRooms = new Map<string, string[]>(); // sellerId -> roomIds
+const buyerRooms = new Map<string, string[]>(); // buyerId -> roomIds
 
 // Track which rooms have already had their "terms agreed" notification sent
 const agreedNotified = new Set<string>();
@@ -49,6 +70,64 @@ export function markReleaseNotified(roomId: string): boolean {
   return true;
 }
 
+// --- Account functions ---
+
+export function registerAccount(
+  username: string,
+  password: string,
+  role: "buyer" | "seller",
+  displayName: string,
+): Account | null {
+  if (accounts.has(username)) return null;
+  const userId = `${role}_${username}`;
+  const token = [...Array(40)].map(() => Math.random().toString(36)[2]).join("");
+  const account: Account = { userId, username, password, role, displayName, token };
+  accounts.set(username, account);
+  accountsByToken.set(token, account);
+  accountsById.set(userId, account);
+  return account;
+}
+
+export function loginAccount(username: string, password: string): Account | null {
+  const account = accounts.get(username);
+  if (!account || account.password !== password) return null;
+  return account;
+}
+
+export function getAccountByToken(token: string): Account | undefined {
+  return accountsByToken.get(token);
+}
+
+export function getAccountById(userId: string): Account | undefined {
+  return accountsById.get(userId);
+}
+
+export function getAccountByUsername(username: string): Account | undefined {
+  return accounts.get(username);
+}
+
+export function addRoomToSeller(sellerId: string, roomId: string): void {
+  const list = sellerRooms.get(sellerId) ?? [];
+  if (!list.includes(roomId)) list.push(roomId);
+  sellerRooms.set(sellerId, list);
+}
+
+export function addRoomToBuyer(buyerId: string, roomId: string): void {
+  const list = buyerRooms.get(buyerId) ?? [];
+  if (!list.includes(roomId)) list.push(roomId);
+  buyerRooms.set(buyerId, list);
+}
+
+export function getSellerRooms(sellerId: string): string[] {
+  return sellerRooms.get(sellerId) ?? [];
+}
+
+export function getBuyerRooms(buyerId: string): string[] {
+  return buyerRooms.get(buyerId) ?? [];
+}
+
+// --- User functions ---
+
 export function createUser(user: User): User {
   users.set(user.userId, user);
   return user;
@@ -56,6 +135,22 @@ export function createUser(user: User): User {
 
 export function getUser(userId: string): User | undefined {
   return users.get(userId);
+}
+
+// --- Room functions ---
+
+function initEscrow(roomId: string) {
+  if (!escrows.has(roomId)) {
+    escrows.set(roomId, {
+      roomId,
+      amount: null,
+      currency: null,
+      status: "empty",
+      paymentLinkUrl: null,
+      clientId: null,
+      freelancerId: null,
+    });
+  }
 }
 
 export function getOrCreateRoom(roomId: string): Room {
@@ -67,15 +162,31 @@ export function getOrCreateRoom(roomId: string): Room {
       messages: [],
       createdAt: new Date(),
     });
-    escrows.set(roomId, {
+    initEscrow(roomId);
+  }
+  return rooms.get(roomId)!;
+}
+
+export function getOrCreateRoomWithMeta(
+  roomId: string,
+  meta: {
+    buyerId?: string;
+    sellerId?: string;
+    description?: string;
+    requestAmount?: number;
+    requestCurrency?: string;
+  },
+): Room {
+  if (!rooms.has(roomId)) {
+    rooms.set(roomId, {
       roomId,
-      amount: null,
-      currency: null,
-      status: "empty",
-      paymentLinkUrl: null,
-      clientId: null,
-      freelancerId: null,
+      channelId: `room-${roomId}`,
+      participants: [],
+      messages: [],
+      createdAt: new Date(),
+      ...meta,
     });
+    initEscrow(roomId);
   }
   return rooms.get(roomId)!;
 }

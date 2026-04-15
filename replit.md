@@ -22,8 +22,8 @@ Built for Streamathon hackathon by StreamPay.sa (Saudi fintech). Freelancers and
 
 ### Backend (artifacts/api-server/src/)
 - `app.ts` — Express app, mounts router at `/api`
-- `routes/auth.ts` — POST /api/auth/join
-- `routes/rooms.ts` — POST /api/rooms/create, GET /api/rooms/:roomId
+- `routes/auth.ts` — POST /api/auth/register, POST /api/auth/login, GET /api/auth/me, POST /api/auth/join (legacy)
+- `routes/rooms.ts` — POST /api/rooms/request (buyer→seller), GET /api/user/rooms, POST /api/rooms/create (legacy), GET /api/rooms/:roomId
 - `routes/contract.ts` — POST /api/contract/generate, POST /api/contract/export
 - `routes/payments.ts` — POST /api/payments/lock, POST /api/payments/release
 - `lib/store.ts` — In-memory state (users, rooms, escrow, messages)

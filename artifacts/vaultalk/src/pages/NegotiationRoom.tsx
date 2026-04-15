@@ -1,27 +1,28 @@
 import { useState, useCallback, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
-import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
+import type { UserData } from "@/contexts/UserContext";
 import ChatView from "@/components/ChatView";
 import TermsPanel from "@/components/TermsPanel";
 import EscrowStatus from "@/components/EscrowStatus";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Copy, LogOut } from "lucide-react";
+import { ShieldCheck, Copy, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function NegotiationRoom() {
   const params = useParams<{ roomId: string }>();
   const roomId = params.roomId ?? "";
   const [, setLocation] = useLocation();
-  const { user, setUser } = useUser();
+  const { account } = useAuth();
   const { toast } = useToast();
   const [chatMessages, setChatMessages] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!user) {
-      setLocation("/");
+    if (!account) {
+      setLocation("/auth");
     }
-  }, [user, setLocation]);
+  }, [account, setLocation]);
 
   const handleMessagesUpdate = useCallback((messages: string[]) => {
     setChatMessages(messages);
@@ -33,12 +34,20 @@ export default function NegotiationRoom() {
     });
   };
 
-  const handleLeave = () => {
-    setUser(null);
-    setLocation("/");
+  const handleBack = () => {
+    setLocation("/dashboard");
   };
 
-  if (!user) return null;
+  if (!account) return null;
+
+  // Map account to the UserData shape the existing components expect
+  const user: UserData = {
+    userId: account.userId,
+    userName: account.displayName,
+    role: account.role === "buyer" ? "client" : "freelancer",
+    streamToken: account.streamToken,
+    roomId,
+  };
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden" data-testid="page-negotiation-room">
@@ -73,7 +82,7 @@ export default function NegotiationRoom() {
               }`}
               data-testid="badge-user-role"
             >
-              {user.role}
+              {user.role === "client" ? "Buyer" : "Seller"}
             </Badge>
             <span className="text-sm font-medium text-foreground" data-testid="text-user-name">
               {user.userName}
@@ -84,11 +93,11 @@ export default function NegotiationRoom() {
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-secondary"
-            onClick={handleLeave}
-            title="Leave room"
+            onClick={handleBack}
+            title="Back to dashboard"
             data-testid="button-leave-room"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <ArrowLeft className="w-3.5 h-3.5" />
           </Button>
         </div>
       </header>
