@@ -124,9 +124,11 @@ export interface ExportContractBody {
   freelancerName: string;
 }
 
-export interface ExportContractResponse {
-  contractText: string;
-  fileName: string;
+export interface DownloadPdfBody {
+  roomId: string;
+  terms: ContractTerms;
+  clientName: string;
+  freelancerName: string;
 }
 
 export interface LockPaymentBody {
@@ -152,19 +154,4 @@ export interface ReleasePaymentBody {
 export interface ReleasePaymentResponse {
   success: boolean;
   escrow: EscrowInfo;
-}
-
-export type SendContractToChatLanguage = "en" | "ar";
-
-export interface SendContractToChatBody {
-  roomId: string;
-  language: SendContractToChatLanguage;
-  terms: ContractTerms;
-  clientName: string;
-  freelancerName: string;
-}
-
-export interface SendContractToChatResponse {
-  success: boolean;
-  contractText: string;
 }

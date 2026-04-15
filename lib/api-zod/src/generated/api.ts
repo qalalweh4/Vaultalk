@@ -96,7 +96,7 @@ export const GenerateContractResponse = zod.object({
 });
 
 /**
- * @summary Export contract as plain text document
+ * @summary Export contract as bilingual PDF document
  */
 export const ExportContractBody = zod.object({
   roomId: zod.string(),
@@ -112,9 +112,21 @@ export const ExportContractBody = zod.object({
   freelancerName: zod.string(),
 });
 
-export const ExportContractResponse = zod.object({
-  contractText: zod.string(),
-  fileName: zod.string(),
+/**
+ * @summary Generate and download bilingual PDF contract
+ */
+export const DownloadContractPdfBody = zod.object({
+  roomId: zod.string(),
+  terms: zod.object({
+    price: zod.number().nullish(),
+    currency: zod.string(),
+    deliverables: zod.array(zod.string()),
+    deadline: zod.string().nullish(),
+    revisions: zod.number().nullish(),
+    status: zod.enum(["negotiating", "near-agreement", "agreed"]),
+  }),
+  clientName: zod.string(),
+  freelancerName: zod.string(),
 });
 
 /**
@@ -159,27 +171,4 @@ export const ReleasePaymentResponse = zod.object({
     clientId: zod.string().nullish(),
     freelancerId: zod.string().nullish(),
   }),
-});
-
-/**
- * @summary Send signed contract to the negotiation chat
- */
-export const SendContractToChatBody = zod.object({
-  roomId: zod.string(),
-  language: zod.enum(["en", "ar"]),
-  terms: zod.object({
-    price: zod.number().nullish(),
-    currency: zod.string(),
-    deliverables: zod.array(zod.string()),
-    deadline: zod.string().nullish(),
-    revisions: zod.number().nullish(),
-    status: zod.enum(["negotiating", "near-agreement", "agreed"]),
-  }),
-  clientName: zod.string(),
-  freelancerName: zod.string(),
-});
-
-export const SendContractToChatResponse = zod.object({
-  success: zod.boolean(),
-  contractText: zod.string(),
 });

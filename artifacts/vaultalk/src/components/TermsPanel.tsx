@@ -71,7 +71,6 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
       {
         onSuccess: () => {
           toast({ title: "Payment released", description: "Funds have been released to the freelancer." });
-          // Show language picker to send the signed contract to chat
           setSendContractOpen(true);
         },
         onError: () => {

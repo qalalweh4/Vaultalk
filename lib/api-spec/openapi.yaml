@@ -136,7 +136,7 @@ paths:
     post:
       operationId: exportContract
       tags: [contract]
-      summary: Export contract as plain text document
+      summary: Export contract as bilingual PDF document
       requestBody:
         required: true
         content:
@@ -145,11 +145,38 @@ paths:
               $ref: "#/components/schemas/ExportContractBody"
       responses:
         "200":
-          description: Contract document text
+          description: Bilingual PDF contract (English + Arabic)
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /contract/download-pdf:
+    post:
+      operationId: downloadContractPdf
+      tags: [contract]
+      summary: Generate and download bilingual PDF contract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DownloadPdfBody"
+      responses:
+        "200":
+          description: Bilingual PDF contract (English + Arabic)
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Bad request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExportContractResponse"
+                $ref: "#/components/schemas/ErrorResponse"
 
   /payments/lock:
     post:
@@ -396,16 +423,22 @@ components:
         - clientName
         - freelancerName
 
-    ExportContractResponse:
+    DownloadPdfBody:
       type: object
       properties:
-        contractText:
+        roomId:
           type: string
-        fileName:
+        terms:
+          $ref: "#/components/schemas/ContractTerms"
+        clientName:
+          type: string
+        freelancerName:
           type: string
       required:
-        - contractText
-        - fileName
+        - roomId
+        - terms
+        - clientName
+        - freelancerName
 
     LockPaymentBody:
       type: object

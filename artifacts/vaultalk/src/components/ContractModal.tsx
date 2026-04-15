@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useLockPayment } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Lock, ExternalLink, FileText, DollarSign, Calendar, RefreshCw, AlertCircle } from "lucide-react";
+import { CheckCircle, Lock, ExternalLink, FileText, FileDown, DollarSign, Calendar, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
 import type { UserData } from "@/contexts/UserContext";
 
 interface ContractTerms {
@@ -31,8 +31,48 @@ export default function ContractModal({ open, onClose, terms, roomId, user }: Co
   const { toast } = useToast();
   const [paymentLink, setPaymentLink] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const lockPayment = useLockPayment();
+
+  const handleDownloadPdf = async () => {
+    if (!terms) return;
+    setDownloadingPdf(true);
+    try {
+      const response = await fetch("/api/contract/download-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomId,
+          clientName: user.role === "client" ? user.userName : "Client",
+          freelancerName: user.role === "freelancer" ? user.userName : "Freelancer",
+          terms: {
+            price: terms.price ?? null,
+            currency: terms.currency ?? "SAR",
+            deliverables: terms.deliverables ?? [],
+            deadline: terms.deadline ?? null,
+            revisions: terms.revisions ?? null,
+            status: (terms.status as "negotiating" | "near-agreement" | "agreed") ?? "agreed",
+          },
+        }),
+      });
+      if (!response.ok) throw new Error("PDF generation failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `vaultalk-contract-${roomId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Contract downloaded", description: "Bilingual PDF saved to your device." });
+    } catch {
+      toast({ title: "Download failed", description: "Could not generate the PDF.", variant: "destructive" });
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   const handleLockPayment = () => {
     if (!terms?.price || !terms?.currency) {
@@ -163,6 +203,29 @@ export default function ContractModal({ open, onClose, terms, roomId, user }: Co
               </div>
             )}
           </div>
+
+          <Separator className="bg-border" />
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full border-primary/40 text-primary hover:bg-primary/10 gap-2"
+            onClick={handleDownloadPdf}
+            disabled={downloadingPdf}
+            data-testid="button-download-contract-pdf"
+          >
+            {downloadingPdf ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating PDF…
+              </>
+            ) : (
+              <>
+                <FileDown className="w-4 h-4" />
+                Download Bilingual PDF
+              </>
+            )}
+          </Button>
 
           <Separator className="bg-border" />
 

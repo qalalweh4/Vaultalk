@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useSendContractToChat } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Languages, CheckCircle, Loader2 } from "lucide-react";
+import { FileDown, CheckCircle, Loader2 } from "lucide-react";
 import type { UserData } from "@/contexts/UserContext";
 
 interface ContractTerms {
@@ -35,19 +34,19 @@ export default function SendContractModal({
   freelancerName,
 }: SendContractModalProps) {
   const { toast } = useToast();
-  const [language, setLanguage] = useState<"en" | "ar" | null>(null);
-  const [sent, setSent] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
 
-  const sendToChat = useSendContractToChat();
+  const handleDownload = async () => {
+    if (!terms) return;
 
-  const handleSend = () => {
-    if (!language || !terms) return;
-
-    sendToChat.mutate(
-      {
-        data: {
+    setDownloading(true);
+    try {
+      const response = await fetch(`/api/contract/download-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           roomId,
-          language,
           clientName,
           freelancerName,
           terms: {
@@ -58,40 +57,48 @@ export default function SendContractModal({
             revisions: terms.revisions ?? null,
             status: (terms.status as "negotiating" | "near-agreement" | "agreed") ?? "agreed",
           },
-        },
-      },
-      {
-        onSuccess: () => {
-          setSent(true);
-          toast({
-            title: language === "ar" ? "تم إرسال العقد" : "Contract sent",
-            description:
-              language === "ar"
-                ? "تم إرسال العقد الرسمي إلى المحادثة."
-                : "The signed contract has been posted to the chat.",
-          });
-          setTimeout(() => {
-            onClose();
-            setSent(false);
-            setLanguage(null);
-          }, 1500);
-        },
-        onError: () => {
-          toast({
-            title: "Failed to send",
-            description: "Could not send the contract to chat. Please try again.",
-            variant: "destructive",
-          });
-        },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("PDF generation failed");
       }
-    );
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `vaultalk-contract-${roomId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setDownloaded(true);
+      toast({
+        title: "Contract downloaded",
+        description: "The bilingual PDF contract has been saved to your device.",
+      });
+
+      setTimeout(() => {
+        onClose();
+        setDownloaded(false);
+      }, 2000);
+    } catch {
+      toast({
+        title: "Download failed",
+        description: "Could not generate the PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleClose = () => {
-    if (!sendToChat.isPending) {
+    if (!downloading) {
       onClose();
-      setSent(false);
-      setLanguage(null);
+      setDownloaded(false);
     }
   };
 
@@ -100,68 +107,54 @@ export default function SendContractModal({
       <DialogContent className="max-w-sm bg-card border-border text-foreground">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-            <FileText className="w-4 h-4 text-primary" />
-            Send Contract to Chat
+            <FileDown className="w-4 h-4 text-primary" />
+            Download Contract PDF
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            The signed contract will be posted as a message visible to both parties.
+            Download the signed contract as a bilingual PDF (English + Arabic).
           </DialogDescription>
         </DialogHeader>
 
-        {sent ? (
+        {downloaded ? (
           <div className="flex flex-col items-center gap-3 py-6 text-emerald-400">
             <CheckCircle className="w-10 h-10" />
-            <p className="text-sm font-medium">
-              {language === "ar" ? "تم إرسال العقد بنجاح!" : "Contract sent successfully!"}
-            </p>
+            <p className="text-sm font-medium">Contract downloaded successfully!</p>
           </div>
         ) : (
           <div className="space-y-4 mt-1">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Languages className="w-4 h-4" />
-              <span>Choose contract language:</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setLanguage("en")}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border text-sm font-medium transition-all ${
-                  language === "en"
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                }`}
-              >
-                <span className="text-xl">🇬🇧</span>
-                <span>English</span>
-              </button>
-
-              <button
-                onClick={() => setLanguage("ar")}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border text-sm font-medium transition-all ${
-                  language === "ar"
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                }`}
-              >
-                <span className="text-xl">🇸🇦</span>
-                <span>العربية</span>
-              </button>
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">What's included</p>
+              <ul className="text-sm text-foreground space-y-1">
+                <li className="flex items-center gap-2">
+                  <span className="text-primary">·</span>
+                  <span>English contract (left-to-right)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-primary">·</span>
+                  <span>Arabic contract / عقد بالعربية (right-to-left)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-primary">·</span>
+                  <span>AI witness certificate</span>
+                </li>
+              </ul>
             </div>
 
             <Button
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-              onClick={handleSend}
-              disabled={!language || sendToChat.isPending}
+              onClick={handleDownload}
+              disabled={!terms || downloading}
+              data-testid="button-download-pdf"
             >
-              {sendToChat.isPending ? (
+              {downloading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Sending…
+                  Generating PDF…
                 </>
               ) : (
                 <>
-                  <FileText className="w-4 h-4" />
-                  {language === "ar" ? "إرسال العقد إلى المحادثة" : "Send Contract to Chat"}
+                  <FileDown className="w-4 h-4" />
+                  Download Bilingual PDF
                 </>
               )}
             </Button>
@@ -171,7 +164,7 @@ export default function SendContractModal({
               size="sm"
               className="w-full text-muted-foreground hover:text-foreground"
               onClick={handleClose}
-              disabled={sendToChat.isPending}
+              disabled={downloading}
             >
               Maybe later
             </Button>

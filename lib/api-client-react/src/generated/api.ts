@@ -19,9 +19,9 @@ import type {
 import type {
   CreateRoomBody,
   CreateRoomResponse,
+  DownloadPdfBody,
   ErrorResponse,
   ExportContractBody,
-  ExportContractResponse,
   GenerateContractBody,
   GenerateContractResponse,
   HealthStatus,
@@ -32,8 +32,6 @@ import type {
   ReleasePaymentBody,
   ReleasePaymentResponse,
   RoomStatus,
-  SendContractToChatBody,
-  SendContractToChatResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -456,7 +454,7 @@ export const useGenerateContract = <
 };
 
 /**
- * @summary Export contract as plain text document
+ * @summary Export contract as bilingual PDF document
  */
 export const getExportContractUrl = () => {
   return `/api/contract/export`;
@@ -465,8 +463,8 @@ export const getExportContractUrl = () => {
 export const exportContract = async (
   exportContractBody: ExportContractBody,
   options?: RequestInit,
-): Promise<ExportContractResponse> => {
-  return customFetch<ExportContractResponse>(getExportContractUrl(), {
+): Promise<Blob> => {
+  return customFetch<Blob>(getExportContractUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -519,7 +517,7 @@ export type ExportContractMutationBody = BodyType<ExportContractBody>;
 export type ExportContractMutationError = ErrorType<unknown>;
 
 /**
- * @summary Export contract as plain text document
+ * @summary Export contract as bilingual PDF document
  */
 export const useExportContract = <
   TError = ErrorType<unknown>,
@@ -539,6 +537,92 @@ export const useExportContract = <
   TContext
 > => {
   return useMutation(getExportContractMutationOptions(options));
+};
+
+/**
+ * @summary Generate and download bilingual PDF contract
+ */
+export const getDownloadContractPdfUrl = () => {
+  return `/api/contract/download-pdf`;
+};
+
+export const downloadContractPdf = async (
+  downloadPdfBody: DownloadPdfBody,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getDownloadContractPdfUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(downloadPdfBody),
+  });
+};
+
+export const getDownloadContractPdfMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof downloadContractPdf>>,
+    TError,
+    { data: BodyType<DownloadPdfBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof downloadContractPdf>>,
+  TError,
+  { data: BodyType<DownloadPdfBody> },
+  TContext
+> => {
+  const mutationKey = ["downloadContractPdf"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof downloadContractPdf>>,
+    { data: BodyType<DownloadPdfBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return downloadContractPdf(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DownloadContractPdfMutationResult = NonNullable<
+  Awaited<ReturnType<typeof downloadContractPdf>>
+>;
+export type DownloadContractPdfMutationBody = BodyType<DownloadPdfBody>;
+export type DownloadContractPdfMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Generate and download bilingual PDF contract
+ */
+export const useDownloadContractPdf = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof downloadContractPdf>>,
+    TError,
+    { data: BodyType<DownloadPdfBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof downloadContractPdf>>,
+  TError,
+  { data: BodyType<DownloadPdfBody> },
+  TContext
+> => {
+  return useMutation(getDownloadContractPdfMutationOptions(options));
 };
 
 /**
@@ -711,46 +795,4 @@ export const useReleasePayment = <
   TContext
 > => {
   return useMutation(getReleasePaymentMutationOptions(options));
-};
-
-/**
- * @summary Send signed contract to the negotiation chat
- */
-export const getSendContractToChatUrl = () => {
-  return `/api/contract/send-to-chat`;
-};
-
-export const sendContractToChat = async (
-  body: SendContractToChatBody,
-  options?: RequestInit,
-): Promise<SendContractToChatResponse> => {
-  return customFetch<SendContractToChatResponse>(getSendContractToChatUrl(), {
-    ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(body),
-  });
-};
-
-export const useSendContractToChat = <
-  TError = ErrorType<ErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof sendContractToChat>>,
-    TError,
-    { data: BodyType<SendContractToChatBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof sendContractToChat>>,
-  TError,
-  { data: BodyType<SendContractToChatBody> },
-  TContext
-> => {
-  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
-  const mutationFn = (props: { data: BodyType<SendContractToChatBody> }) =>
-    sendContractToChat(props.data, requestOptions);
-  return useMutation({ mutationFn, ...mutationOptions });
 };
