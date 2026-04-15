@@ -105,22 +105,32 @@ export default function ChatView({ roomId, user, onMessagesUpdate }: ChatViewPro
         setChannelRef(channel);
         setStreamConnected(true);
 
-        const existing = (state.messages ?? []).map(
-          (m): ChatMessage => ({
-            id: m.id,
-            userId: m.user?.id ?? "unknown",
-            userName: m.user?.name ?? "Unknown",
-            role: (m.user?.id?.endsWith("_client") ? "client" : "freelancer") as
-              | "client"
-              | "freelancer",
-            text: m.text ?? "",
-            timestamp: new Date(m.created_at ?? Date.now()),
-          })
-        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const isAllowedForMe = (m: any) =>
+          !(m?.client_only === true) || user.role === "client";
+
+        const existing = (state.messages ?? [])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((m: any) => isAllowedForMe(m))
+          .map(
+            (m): ChatMessage => ({
+              id: m.id,
+              userId: m.user?.id ?? "unknown",
+              userName: m.user?.name ?? "Unknown",
+              role: (m.user?.id?.endsWith("_client") ? "client" : "freelancer") as
+                | "client"
+                | "freelancer",
+              text: m.text ?? "",
+              timestamp: new Date(m.created_at ?? Date.now()),
+            })
+          );
         setMessages(existing);
 
         const { unsubscribe } = channel.on("message.new", (event) => {
           if (!event.message) return;
+          // Skip client-only messages if the current user is not the client
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((event.message as any).client_only === true && user.role !== "client") return;
           const msg: ChatMessage = {
             id: event.message.id,
             userId: event.message.user?.id ?? "unknown",

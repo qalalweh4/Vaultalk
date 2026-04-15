@@ -3,6 +3,7 @@ import { LockPaymentBody, ReleasePaymentBody } from "@workspace/api-zod";
 import * as store from "../lib/store";
 import { createPaymentLink, isStreamPayEnabled } from "../lib/streampay";
 import { sendSystemMessage, isStreamEnabled } from "../lib/streamchat";
+import { generateContractText, generateContractTextArabic } from "../lib/ai";
 
 const router: IRouter = Router();
 
@@ -23,11 +24,12 @@ router.post("/payments/lock", async (req, res): Promise<void> => {
 
   const escrow = store.lockEscrow(roomId, amount, currency, result.url, clientId, freelancerId);
 
+  // Payment link message is client-only — the freelancer doesn't need to see the link
   if (isStreamEnabled()) {
     const msg = result.url
-      ? `💳 StreamPay: ${amount} ${currency} payment link created. Client: please complete the payment to lock funds in escrow.`
-      : `💳 Escrow: ${amount} ${currency} marked as locked in Vaultalk escrow (demo mode).`;
-    await sendSystemMessage(roomId, msg);
+      ? `💳 StreamPay payment link ready: ${result.url}\nAmount: ${amount} ${currency} — click the link to fund the escrow.`
+      : `💳 Escrow: ${amount} ${currency} marked as locked (demo mode).`;
+    sendSystemMessage(roomId, msg, { client_only: true }).catch(() => {});
   }
 
   res.json({
@@ -47,11 +49,15 @@ router.post("/payments/release", async (req, res): Promise<void> => {
   const { roomId } = parsed.data;
   const escrow = store.releaseEscrow(roomId);
 
+  // Only send release notification once even if multiple tabs trigger release
   if (isStreamEnabled()) {
-    await sendSystemMessage(
-      roomId,
-      "🎉 Payment released to freelancer. Deal complete! Vaultalk thanks you for using trusted AI negotiations.",
-    );
+    const isFirst = store.markReleaseNotified(roomId);
+    if (isFirst) {
+      sendSystemMessage(
+        roomId,
+        "🎉 Payment released to freelancer. Deal complete! Vaultalk thanks you for using trusted AI negotiations.",
+      ).catch(() => {});
+    }
   }
 
   res.json({ success: true, escrow });

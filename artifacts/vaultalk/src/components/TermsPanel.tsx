@@ -9,6 +9,7 @@ import {
   AlertCircle, Loader2, FileCheck, Unlock,
 } from "lucide-react";
 import ContractModal from "@/components/ContractModal";
+import SendContractModal from "@/components/SendContractModal";
 import type { UserData } from "@/contexts/UserContext";
 
 interface ContractTerms {
@@ -33,6 +34,7 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
   const [terms, setTerms] = useState<ContractTerms | null>(null);
   const [lastPolled, setLastPolled] = useState<Date | null>(null);
   const [contractOpen, setContractOpen] = useState(false);
+  const [sendContractOpen, setSendContractOpen] = useState(false);
 
   const generateContract = useGenerateContract();
   const releasePayment = useReleasePayment();
@@ -69,6 +71,8 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
       {
         onSuccess: () => {
           toast({ title: "Payment released", description: "Funds have been released to the freelancer." });
+          // Show language picker to send the signed contract to chat
+          setSendContractOpen(true);
         },
         onError: () => {
           toast({ title: "Release failed", description: "Please try again.", variant: "destructive" });
@@ -213,6 +217,16 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
         terms={terms}
         roomId={roomId}
         user={user}
+      />
+
+      <SendContractModal
+        open={sendContractOpen}
+        onClose={() => setSendContractOpen(false)}
+        roomId={roomId}
+        user={user}
+        terms={terms}
+        clientName={user.role === "client" ? user.userName : "Client"}
+        freelancerName={user.role === "freelancer" ? user.userName : "Freelancer"}
       />
     </aside>
   );

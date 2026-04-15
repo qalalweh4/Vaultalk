@@ -113,6 +113,67 @@ export async function extractTerms(messages: string[]): Promise<ContractTerms> {
   }
 }
 
+export function generateContractTextArabic(
+  terms: ContractTerms,
+  clientName: string,
+  freelancerName: string,
+  roomId: string,
+): string {
+  const date = new Date().toLocaleDateString("ar-SA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const deliverablesText =
+    terms.deliverables.length > 0
+      ? terms.deliverables.map((d, i) => `  ${i + 1}. ${d}`).join("\n")
+      : "  (يُحدد لاحقاً)";
+
+  return `عقد خدمات مستقلة
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+رقم المرجع: VAULTALK-${roomId.toUpperCase()}
+التاريخ: ${date}
+
+الأطراف:
+  العميل:     ${clientName}
+  المستقل:    ${freelancerName}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+الشروط المتفق عليها
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+الأتعاب:         ${terms.price !== null ? `${terms.price} ${terms.currency}` : "يُحدد لاحقاً"}
+الموعد النهائي:  ${terms.deadline ?? "يُحدد لاحقاً"}
+التعديلات:       ${terms.revisions !== null ? `${terms.revisions} جولات` : "يُحدد لاحقاً"}
+
+المُسلَّمات:
+${deliverablesText}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+الدفع
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+يُحتجز مبلغ ${terms.price !== null ? `${terms.price} ${terms.currency}` : "المبلغ المتفق عليه"}
+في الضمان عبر StreamPay ويُصرف عند الانتهاء من
+تسليم جميع المُسلَّمات والموافقة عليها.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+شهادة الشاهد الذكي — بدعم من Claude AI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+تمت مفاوضة هذه الاتفاقية وشهد عليها Vaultalk AI (Claude).
+استخرج الشاهد الذكي جميع الشروط وتحقق منها من نص التفاوض
+في الغرفة ${roomId}.
+
+أكد الطرفان رقمياً على هذه الشروط عبر منصة Vaultalk.
+
+بدعم من Vaultalk — مفاوضات عقود موثوقة بالذكاء الاصطناعي
+مبني على StreamPay · Stream Chat · Claude AI | Streamathon 2025
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+}
+
 export function generateContractText(
   terms: ContractTerms,
   clientName: string,

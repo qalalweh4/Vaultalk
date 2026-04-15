@@ -160,3 +160,26 @@ export const ReleasePaymentResponse = zod.object({
     freelancerId: zod.string().nullish(),
   }),
 });
+
+/**
+ * @summary Send signed contract to the negotiation chat
+ */
+export const SendContractToChatBody = zod.object({
+  roomId: zod.string(),
+  language: zod.enum(["en", "ar"]),
+  terms: zod.object({
+    price: zod.number().nullish(),
+    currency: zod.string(),
+    deliverables: zod.array(zod.string()),
+    deadline: zod.string().nullish(),
+    revisions: zod.number().nullish(),
+    status: zod.enum(["negotiating", "near-agreement", "agreed"]),
+  }),
+  clientName: zod.string(),
+  freelancerName: zod.string(),
+});
+
+export const SendContractToChatResponse = zod.object({
+  success: zod.boolean(),
+  contractText: zod.string(),
+});

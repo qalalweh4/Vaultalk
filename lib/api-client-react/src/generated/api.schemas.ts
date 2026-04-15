@@ -153,3 +153,18 @@ export interface ReleasePaymentResponse {
   success: boolean;
   escrow: EscrowInfo;
 }
+
+export type SendContractToChatLanguage = "en" | "ar";
+
+export interface SendContractToChatBody {
+  roomId: string;
+  language: SendContractToChatLanguage;
+  terms: ContractTerms;
+  clientName: string;
+  freelancerName: string;
+}
+
+export interface SendContractToChatResponse {
+  success: boolean;
+  contractText: string;
+}

@@ -28,17 +28,25 @@ const rooms = new Map<string, Room>();
 const escrows = new Map<string, Escrow>();
 
 // Track which rooms have already had their "terms agreed" notification sent
-// so we never send the same system message twice even with multiple pollers
 const agreedNotified = new Set<string>();
 
 export function markAgreedNotified(roomId: string): boolean {
-  if (agreedNotified.has(roomId)) return false; // already sent
+  if (agreedNotified.has(roomId)) return false;
   agreedNotified.add(roomId);
-  return true; // first time — go ahead and send
+  return true;
 }
 
 export function clearAgreedNotified(roomId: string): void {
   agreedNotified.delete(roomId);
+}
+
+// Track which rooms have already had their "payment released" notification sent
+const releaseNotified = new Set<string>();
+
+export function markReleaseNotified(roomId: string): boolean {
+  if (releaseNotified.has(roomId)) return false;
+  releaseNotified.add(roomId);
+  return true;
 }
 
 export function createUser(user: User): User {

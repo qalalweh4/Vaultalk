@@ -32,6 +32,8 @@ import type {
   ReleasePaymentBody,
   ReleasePaymentResponse,
   RoomStatus,
+  SendContractToChatBody,
+  SendContractToChatResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -709,4 +711,46 @@ export const useReleasePayment = <
   TContext
 > => {
   return useMutation(getReleasePaymentMutationOptions(options));
+};
+
+/**
+ * @summary Send signed contract to the negotiation chat
+ */
+export const getSendContractToChatUrl = () => {
+  return `/api/contract/send-to-chat`;
+};
+
+export const sendContractToChat = async (
+  body: SendContractToChatBody,
+  options?: RequestInit,
+): Promise<SendContractToChatResponse> => {
+  return customFetch<SendContractToChatResponse>(getSendContractToChatUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(body),
+  });
+};
+
+export const useSendContractToChat = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendContractToChat>>,
+    TError,
+    { data: BodyType<SendContractToChatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendContractToChat>>,
+  TError,
+  { data: BodyType<SendContractToChatBody> },
+  TContext
+> => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationFn = (props: { data: BodyType<SendContractToChatBody> }) =>
+    sendContractToChat(props.data, requestOptions);
+  return useMutation({ mutationFn, ...mutationOptions });
 };

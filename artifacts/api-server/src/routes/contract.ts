@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { GenerateContractBody, ExportContractBody } from "@workspace/api-zod";
-import { extractTerms, generateContractText, type ContractTerms } from "../lib/ai";
+import { GenerateContractBody, ExportContractBody, SendContractToChatBody } from "@workspace/api-zod";
+import { extractTerms, generateContractText, generateContractTextArabic, type ContractTerms } from "../lib/ai";
 import * as store from "../lib/store";
 import { sendSystemMessage, isStreamEnabled } from "../lib/streamchat";
 
@@ -70,6 +70,35 @@ router.post("/contract/export", async (req, res): Promise<void> => {
   const fileName = `vaultalk-contract-${roomId}-${Date.now()}.txt`;
 
   res.json({ contractText, fileName });
+});
+
+router.post("/contract/send-to-chat", async (req, res): Promise<void> => {
+  const parsed = SendContractToChatBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { roomId, language, terms } = parsed.data;
+
+  // Always use the names stored server-side for accuracy
+  const room = store.getOrCreateRoom(roomId);
+  const clientParticipant = room.participants.find((p) => p.role === "client");
+  const freelancerParticipant = room.participants.find((p) => p.role === "freelancer");
+  const clientName = clientParticipant?.userName ?? parsed.data.clientName ?? "Client";
+  const freelancerName = freelancerParticipant?.userName ?? parsed.data.freelancerName ?? "Freelancer";
+
+  const contractText =
+    language === "ar"
+      ? generateContractTextArabic(terms as ContractTerms, clientName, freelancerName, roomId)
+      : generateContractText(terms as ContractTerms, clientName, freelancerName, roomId);
+
+  if (isStreamEnabled()) {
+    const header = language === "ar" ? "📄 عقد رسمي موقَّع" : "📄 Signed Contract";
+    await sendSystemMessage(roomId, `${header}\n\n${contractText}`);
+  }
+
+  res.json({ success: true, contractText });
 });
 
 export default router;

@@ -127,12 +127,16 @@ export async function getOrCreateChannel(
   }
 }
 
-export async function sendSystemMessage(channelId: string, text: string): Promise<void> {
+export async function sendSystemMessage(
+  channelId: string,
+  text: string,
+  extra?: Record<string, unknown>,
+): Promise<void> {
   const client = getStreamClient();
   if (!client) return;
   try {
     const channel = client.channel("messaging", channelId);
-    await channel.sendMessage({ text, user_id: "vaultalk-bot" });
+    await channel.sendMessage({ text, user_id: "vaultalk-bot", ...extra });
   } catch (err) {
     logger.error({ err, channelId }, "Failed to send system message");
   }
