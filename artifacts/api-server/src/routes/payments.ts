@@ -66,8 +66,21 @@ router.post("/payments/release", async (req, res): Promise<void> => {
 // TODO production: verify StreamPay webhook signature here before trusting this payload
 router.post("/payments/webhook", async (req, res): Promise<void> => {
   const payload = req.body ?? {};
-  const linkId: string | undefined = payload.payment_link_id ?? payload.id ?? payload.linkId;
-  const status: string = (payload.status ?? "").toUpperCase();
+
+  // StreamPay sends event_type (e.g. "PAYMENT_SUCCEEDED") plus a data object.
+  // We also fall back to a bare status field so manual curl tests still work.
+  const eventType: string = (
+    payload.event_type ?? payload.type ?? payload.event ?? payload.status ?? ""
+  ).toUpperCase();
+
+  // Payment link ID can appear at several paths depending on the event type.
+  const data = payload.data ?? payload.object ?? payload;
+  const linkId: string | undefined =
+    data.payment_link_id ??
+    data.paymentLinkId ??
+    payload.payment_link_id ??
+    payload.id ??
+    payload.linkId;
 
   res.json({ received: true });
 
@@ -76,10 +89,20 @@ router.post("/payments/webhook", async (req, res): Promise<void> => {
   const roomId = store.getRoomIdByLinkId(linkId);
   if (!roomId) return;
 
-  const SUCCESS_STATUSES = ["PAID", "COMPLETED", "SUCCESS"];
-  const FAILURE_STATUSES = ["FAILED", "EXPIRED", "CANCELLED"];
+  // StreamPay success events
+  const SUCCESS_EVENTS = [
+    "PAYMENT_SUCCEEDED", "INVOICE_COMPLETED", "PAYMENT_MARKED_AS_PAID",
+    // fallback statuses for manual testing
+    "PAID", "COMPLETED", "SUCCESS",
+  ];
+  // StreamPay failure events
+  const FAILURE_EVENTS = [
+    "PAYMENT_FAILED", "PAYMENT_REFUNDED",
+    // fallback statuses for manual testing
+    "FAILED", "EXPIRED", "CANCELLED",
+  ];
 
-  if (SUCCESS_STATUSES.includes(status)) {
+  if (SUCCESS_EVENTS.includes(eventType)) {
     store.releaseEscrow(roomId);
     if (isStreamEnabled()) {
       const isFirst = store.markReleaseNotified(roomId);
@@ -90,7 +113,7 @@ router.post("/payments/webhook", async (req, res): Promise<void> => {
         ).catch(() => {});
       }
     }
-  } else if (FAILURE_STATUSES.includes(status)) {
+  } else if (FAILURE_EVENTS.includes(eventType)) {
     store.disputeEscrow(roomId);
     if (isStreamEnabled()) {
       sendSystemMessage(

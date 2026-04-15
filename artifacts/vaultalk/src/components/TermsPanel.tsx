@@ -1,12 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useGenerateContract, useReleasePayment, useGetRoom, getGetRoomQueryKey, type RoomStatus } from "@workspace/api-client-react";
+import {
+  useGenerateContract,
+  useReleasePayment,
+  useGetRoom,
+  getGetRoomQueryKey,
+  type RoomStatus,
+} from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Sparkles, DollarSign, Calendar, RefreshCw, CheckCircle,
-  AlertCircle, Loader2, FileCheck, Unlock, XCircle,
+  Sparkles,
+  DollarSign,
+  Calendar,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  FileCheck,
+  Unlock,
+  XCircle,
 } from "lucide-react";
 import ContractModal from "@/components/ContractModal";
 import SendContractModal from "@/components/SendContractModal";
@@ -29,7 +43,11 @@ interface TermsPanelProps {
   messages: string[];
 }
 
-export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) {
+export default function TermsPanel({
+  roomId,
+  user,
+  messages,
+}: TermsPanelProps) {
   const { toast } = useToast();
   const [terms, setTerms] = useState<ContractTerms | null>(null);
   const [lastPolled, setLastPolled] = useState<Date | null>(null);
@@ -46,11 +64,14 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
       refetchInterval: 10000,
     },
   });
-  const escrowStatus: string = (roomData as RoomStatus | undefined)?.escrow?.status ?? "empty";
+  const escrowStatus: string =
+    (roomData as RoomStatus | undefined)?.escrow?.status ?? "empty";
 
   // Keep a ref to messages so the interval always uses the latest without re-registering
   const messagesRef = useRef<string[]>(messages);
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const poll = useCallback(() => {
     if (messagesRef.current.length === 0) return;
@@ -62,16 +83,19 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
           if (r?.terms) setTerms(r.terms);
           setLastPolled(new Date());
         },
-      }
+      },
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
 
   useEffect(() => {
     // Initial poll after 3s (let chat load first), then every 20s
     const initial = setTimeout(poll, 3000);
-    const id = setInterval(poll, 20000);
-    return () => { clearTimeout(initial); clearInterval(id); };
+    const id = setInterval(poll, 8000);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(id);
+    };
   }, [poll]);
 
   const handleRelease = () => {
@@ -79,13 +103,20 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
       { data: { roomId } },
       {
         onSuccess: () => {
-          toast({ title: "Payment released", description: "Funds have been released to the freelancer." });
+          toast({
+            title: "Payment released",
+            description: "Funds have been released to the freelancer.",
+          });
           setSendContractOpen(true);
         },
         onError: () => {
-          toast({ title: "Release failed", description: "Please try again.", variant: "destructive" });
+          toast({
+            title: "Release failed",
+            description: "Please try again.",
+            variant: "destructive",
+          });
         },
-      }
+      },
     );
   };
 
@@ -93,11 +124,14 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
   const statusColor = agreed
     ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
     : terms?.status === "negotiating"
-    ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-    : "bg-muted text-muted-foreground border-border";
+      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+      : "bg-muted text-muted-foreground border-border";
 
   return (
-    <aside className="flex flex-col h-full bg-card border-l border-border" data-testid="panel-terms">
+    <aside
+      className="flex flex-col h-full bg-card border-l border-border"
+      data-testid="panel-terms"
+    >
       <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />
@@ -109,7 +143,10 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
           )}
           {lastPolled && (
             <span className="text-[10px] text-muted-foreground">
-              {lastPolled.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {lastPolled.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
           )}
         </div>
@@ -119,22 +156,32 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
         {!terms && !generateContract.isPending && (
           <div className="text-center py-8 text-muted-foreground">
             <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-xs">AI will extract contract terms as you negotiate.</p>
+            <p className="text-xs">
+              AI will extract contract terms as you negotiate.
+            </p>
           </div>
         )}
 
         {terms && (
           <>
             {terms.status && (
-              <Badge className={`text-xs font-medium border ${statusColor}`} data-testid="badge-terms-status">
-                {agreed ? "Agreement reached" :
-                 terms.status === "negotiating" ? "In negotiation" :
-                 terms.status}
+              <Badge
+                className={`text-xs font-medium border ${statusColor}`}
+                data-testid="badge-terms-status"
+              >
+                {agreed
+                  ? "Agreement reached"
+                  : terms.status === "negotiating"
+                    ? "In negotiation"
+                    : terms.status}
               </Badge>
             )}
 
             {terms.summary && (
-              <p className="text-xs text-muted-foreground italic border-l-2 border-primary/30 pl-2 leading-relaxed" data-testid="text-terms-summary">
+              <p
+                className="text-xs text-muted-foreground italic border-l-2 border-primary/30 pl-2 leading-relaxed"
+                data-testid="text-terms-summary"
+              >
                 {terms.summary}
               </p>
             )}
@@ -143,22 +190,40 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
 
             <div className="space-y-3">
               {terms.price !== null && terms.price !== undefined && (
-                <TermRow icon={<DollarSign className="w-3.5 h-3.5" />} label="Payment" testId="text-terms-price">
-                  <span className="font-semibold">{terms.price} {terms.currency ?? ""}</span>
+                <TermRow
+                  icon={<DollarSign className="w-3.5 h-3.5" />}
+                  label="Payment"
+                  testId="text-terms-price"
+                >
+                  <span className="font-semibold">
+                    {terms.price} {terms.currency ?? ""}
+                  </span>
                 </TermRow>
               )}
               {terms.deadline && (
-                <TermRow icon={<Calendar className="w-3.5 h-3.5" />} label="Deadline" testId="text-terms-deadline">
+                <TermRow
+                  icon={<Calendar className="w-3.5 h-3.5" />}
+                  label="Deadline"
+                  testId="text-terms-deadline"
+                >
                   {terms.deadline}
                 </TermRow>
               )}
               {terms.revisions !== null && terms.revisions !== undefined && (
-                <TermRow icon={<RefreshCw className="w-3.5 h-3.5" />} label="Revisions" testId="text-terms-revisions">
+                <TermRow
+                  icon={<RefreshCw className="w-3.5 h-3.5" />}
+                  label="Revisions"
+                  testId="text-terms-revisions"
+                >
                   {terms.revisions} included
                 </TermRow>
               )}
               {terms.deliverables && terms.deliverables.length > 0 && (
-                <TermRow icon={<CheckCircle className="w-3.5 h-3.5" />} label="Deliverables" testId="text-terms-deliverables">
+                <TermRow
+                  icon={<CheckCircle className="w-3.5 h-3.5" />}
+                  label="Deliverables"
+                  testId="text-terms-deliverables"
+                >
                   <ul className="space-y-0.5">
                     {terms.deliverables.map((d, i) => (
                       <li key={i} className="flex items-start gap-1">
@@ -178,7 +243,11 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
                   Agreement detected
                 </div>
                 <p className="text-xs text-emerald-400/80">
-                  Both parties appear to have agreed. Use <kbd className="bg-emerald-900/30 px-1 rounded text-[10px]">/agree</kbd> to confirm.
+                  Both parties appear to have agreed. Use{" "}
+                  <kbd className="bg-emerald-900/30 px-1 rounded text-[10px]">
+                    /agree
+                  </kbd>{" "}
+                  to confirm.
                 </p>
               </div>
             )}
@@ -261,7 +330,10 @@ export default function TermsPanel({ roomId, user, messages }: TermsPanelProps) 
 }
 
 function TermRow({
-  icon, label, children, testId,
+  icon,
+  label,
+  children,
+  testId,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -272,7 +344,9 @@ function TermRow({
     <div className="flex items-start gap-2" data-testid={testId}>
       <span className="text-primary mt-0.5 flex-shrink-0">{icon}</span>
       <div>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{label}</p>
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
+          {label}
+        </p>
         <div className="text-xs text-foreground">{children}</div>
       </div>
     </div>

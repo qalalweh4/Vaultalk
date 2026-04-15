@@ -271,6 +271,17 @@ export function getRoomIdByLinkId(linkId: string): string | undefined {
   return linkRoomMap.get(linkId);
 }
 
+/** Returns all escrows currently in "locked" state that have a StreamPay payment link ID. */
+export function getLockedEscrowsWithLinkIds(): Array<{ roomId: string; paymentLinkId: string }> {
+  const result: Array<{ roomId: string; paymentLinkId: string }> = [];
+  for (const escrow of escrows.values()) {
+    if (escrow.status === "locked" && escrow.paymentLinkId) {
+      result.push({ roomId: escrow.roomId, paymentLinkId: escrow.paymentLinkId });
+    }
+  }
+  return result;
+}
+
 export function releaseEscrow(roomId: string): Escrow {
   const escrow = escrows.get(roomId);
   if (escrow) {
