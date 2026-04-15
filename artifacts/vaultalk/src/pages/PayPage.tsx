@@ -24,9 +24,10 @@ export default function PayPage() {
       setLocation("/dashboard");
       return;
     }
-    // Not logged in → go to auth, come back after
+    // Not logged in → go to auth with return URL
     if (!account) {
-      setLocation(`/auth`);
+      const returnUrl = `/pay?seller=${encodeURIComponent(sellerUsername)}&amount=${encodeURIComponent(amount)}&currency=${encodeURIComponent(currency)}&description=${encodeURIComponent(description)}`;
+      setLocation(`/auth?next=${encodeURIComponent(returnUrl)}`);
       return;
     }
     // Seller landed on pay page — wrong role

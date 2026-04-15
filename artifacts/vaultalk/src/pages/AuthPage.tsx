@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { ShieldCheck, Sparkles, ArrowRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ type Mode = "login" | "register";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const nextUrl = new URLSearchParams(search).get("next") ?? "/dashboard";
   const { login, register } = useAuth();
   const { toast } = useToast();
 
@@ -38,7 +40,7 @@ export default function AuthPage() {
       } else {
         await register(username.trim(), password, role, displayName.trim());
       }
-      setLocation("/dashboard");
+      setLocation(nextUrl);
     } catch (err) {
       toast({
         title: mode === "login" ? "Login failed" : "Registration failed",
