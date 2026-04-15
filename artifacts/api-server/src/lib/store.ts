@@ -283,6 +283,7 @@ export function releaseEscrow(roomId: string): Escrow {
       currency: null,
       status: "released",
       paymentLinkUrl: null,
+      paymentLinkId: null,
       clientId: null,
       freelancerId: null,
     }
