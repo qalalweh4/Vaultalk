@@ -59,12 +59,14 @@ router.post("/contract/generate", async (req, res): Promise<void> => {
   const room = store.getOrCreateRoom(roomId);
   const client = room.participants.find((p) => p.role === "client");
   const freelancer = room.participants.find((p) => p.role === "freelancer");
+  const buyerAccount = store.getAccountById(room.buyerId ?? "");
   const sellerAccount = store.getAccountById(room.sellerId ?? "");
+  const resolvedClientName = buyerAccount?.username ?? client?.userName ?? "Client";
   const merchantName = sellerAccount?.username ?? freelancer?.userName ?? "Merchant";
 
   const contractText = generateContractText(
     terms,
-    client?.userName ?? "Client",
+    resolvedClientName,
     merchantName,
     roomId,
   );
@@ -144,8 +146,10 @@ router.post("/contract/download-pdf", async (req, res): Promise<void> => {
   const room = store.getOrCreateRoom(roomId);
   const clientParticipant = room.participants.find((p) => p.role === "client");
   const freelancerParticipant = room.participants.find((p) => p.role === "freelancer");
+  const downloadBuyerAccount = store.getAccountById(room.buyerId ?? "");
   const downloadSellerAccount = store.getAccountById(room.sellerId ?? "");
-  const resolvedClientName = clientParticipant?.userName ?? clientName;
+  const resolvedClientName =
+    downloadBuyerAccount?.username ?? clientParticipant?.userName ?? clientName;
   const resolvedFreelancerName =
     downloadSellerAccount?.username ?? freelancerParticipant?.userName ?? freelancerName;
 
