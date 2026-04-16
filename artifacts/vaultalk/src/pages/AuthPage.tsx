@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import { ShieldCheck, Sparkles, ArrowRight, RefreshCw } from "lucide-react";
+import { ShieldCheck, Sparkles, ArrowRight, RefreshCw, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import GradientBackground from "@/components/GradientBackground";
 
 type Mode = "login" | "register";
 
@@ -14,6 +16,7 @@ export default function AuthPage() {
   const search = useSearch();
   const nextUrl = new URLSearchParams(search).get("next") ?? "/dashboard";
   const { login, register } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
 
   const [mode, setMode] = useState<Mode>("login");
@@ -53,20 +56,32 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-emerald-500/5 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 relative">
+      <GradientBackground />
+
+      {/* Theme toggle top-right */}
+      <div className="absolute top-4 right-4 z-20">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          className="w-9 h-9 glass-card bg-card/50 border border-border/60 text-muted-foreground hover:text-foreground"
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </Button>
       </div>
 
-      <div className="relative w-full max-w-md">
+      <div className="relative z-10 w-full max-w-md">
         {/* Logo */}
         <div className="mb-10 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-primary-foreground" />
+          <div className="flex items-center justify-center gap-2.5 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg glow-purple">
+              <ShieldCheck className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-bold tracking-tight">Vaultalk</span>
+            <span className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-300 via-pink-300 to-violet-300 bg-clip-text text-transparent">
+              Vaultalk
+            </span>
           </div>
           <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">
             AI-witnessed contract negotiation with StreamPay escrow.
@@ -74,16 +89,16 @@ export default function AuthPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-lg space-y-5">
+        <div className="glass-card bg-card/75 border border-border/60 rounded-2xl p-6 shadow-xl space-y-5">
           {/* Mode toggle */}
-          <div className="grid grid-cols-2 gap-1 bg-secondary rounded-lg p-1">
+          <div className="grid grid-cols-2 gap-1 bg-secondary/60 rounded-xl p-1">
             {(["login", "register"] as Mode[]).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
-                className={`py-1.5 rounded-md text-sm font-medium transition-colors ${
+                className={`py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                   mode === m
-                    ? "bg-card text-foreground shadow-sm"
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -126,7 +141,7 @@ export default function AuthPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="e.g. Ahmed Al-Rashid"
-                className="bg-input border-border"
+                className="bg-input/60 border-border"
                 autoFocus
               />
             </div>
@@ -142,7 +157,7 @@ export default function AuthPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. ahmed_designs"
-              className="bg-input border-border font-mono text-sm"
+              className="bg-input/60 border-border font-mono text-sm"
               autoFocus={mode === "login"}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             />
@@ -159,13 +174,13 @@ export default function AuthPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="bg-input border-border"
+              className="bg-input/60 border-border"
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             />
           </div>
 
           <Button
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-2"
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0 font-semibold gap-2 shadow-sm"
             onClick={handleSubmit}
             disabled={loading}
           >
@@ -184,7 +199,7 @@ export default function AuthPage() {
         </div>
 
         <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <Sparkles className="w-3 h-3 text-primary" />
+          <Sparkles className="w-3 h-3 text-purple-400" />
           <span>Powered by Claude AI · StreamPay · Stream Chat</span>
         </div>
       </div>
@@ -209,10 +224,10 @@ function RoleCard({
     <button
       type="button"
       onClick={onClick}
-      className={`p-3 rounded-lg border text-left transition-colors ${
+      className={`p-3 rounded-xl border text-left transition-all duration-150 ${
         active
-          ? "border-primary bg-primary/10 text-primary"
-          : "border-border bg-secondary text-muted-foreground hover:border-border/80 hover:text-foreground"
+          ? "border-purple-500/50 bg-gradient-to-br from-purple-500/15 to-pink-500/10 text-purple-300"
+          : "border-border bg-secondary/50 text-muted-foreground hover:border-border/80 hover:text-foreground"
       }`}
     >
       <span className="text-lg">{emoji}</span>

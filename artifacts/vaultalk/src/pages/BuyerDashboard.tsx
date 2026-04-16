@@ -2,14 +2,17 @@ import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import {
   ShieldCheck, LogOut, RefreshCw, MessageSquare,
-  Clock, CheckCircle, AlertCircle, Plus, X, ArrowRight, Package,
+  Clock, CheckCircle, AlertCircle, Plus, X, ArrowRight,
+  Package, Sun, Moon, Banknote, Gavel,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/hooks/use-toast";
+import GradientBackground from "@/components/GradientBackground";
 
 interface RoomInfo {
   roomId: string;
@@ -44,22 +47,63 @@ function escrowBadge(status: string) {
       );
     default:
       return (
-        <Badge className="bg-secondary text-muted-foreground border-border border text-[11px]">
-          Negotiating
+        <Badge className="bg-purple-500/10 text-purple-300 border-purple-500/20 border text-[11px]">
+          <Gavel className="w-2.5 h-2.5 mr-1" /> Negotiating
         </Badge>
       );
   }
 }
 
+function RoomCard({ room, onOpen }: { room: RoomInfo; onOpen: () => void }) {
+  const initials = room.counterpartName[0]?.toUpperCase() ?? "?";
+  return (
+    <div
+      className="glass-card bg-card/70 border border-border rounded-2xl p-4 flex items-start gap-4 hover:border-primary/40 hover:shadow-md transition-all duration-200 group"
+    >
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500/30 to-violet-500/30 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
+        <span className="text-sm font-bold text-purple-300">{initials}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-sm">{room.counterpartName}</span>
+          <span className="text-xs text-muted-foreground font-mono">@{room.counterpartUsername}</span>
+          {escrowBadge(room.escrowStatus)}
+        </div>
+        {room.description && (
+          <p className="text-sm text-muted-foreground mt-0.5 truncate">{room.description}</p>
+        )}
+        <div className="flex items-center gap-3 mt-1.5">
+          {room.amount !== null && (
+            <span className="text-xs font-semibold text-emerald-400">
+              {room.amount.toLocaleString()} {room.currency}
+            </span>
+          )}
+          <span className="text-[11px] text-muted-foreground">
+            {new Date(room.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        onClick={onOpen}
+        className="flex-shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0 gap-1.5 shadow-sm"
+      >
+        <MessageSquare className="w-3.5 h-3.5" />
+        Open Chat
+      </Button>
+    </div>
+  );
+}
+
 export default function BuyerDashboard() {
   const [, setLocation] = useLocation();
   const { account, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
 
-  // New request form
   const [sellerUsername, setSellerUsername] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -75,31 +119,20 @@ export default function BuyerDashboard() {
         const data = (await res.json()) as { rooms: RoomInfo[] };
         setRooms(data.rooms);
       }
-    } catch {
-      // silent
-    } finally {
+    } catch { /* silent */ } finally {
       setLoading(false);
     }
   }, [account]);
 
   useEffect(() => {
-    if (!account) {
-      setLocation("/auth");
-      return;
-    }
-    if (account.role !== "buyer") {
-      setLocation("/dashboard");
-      return;
-    }
+    if (!account) { setLocation("/auth"); return; }
+    if (account.role !== "buyer") { setLocation("/dashboard"); return; }
     fetchRooms();
     const iv = setInterval(fetchRooms, 10000);
     return () => clearInterval(iv);
   }, [account, setLocation, fetchRooms]);
 
-  const handleLogout = () => {
-    logout();
-    setLocation("/auth");
-  };
+  const handleLogout = () => { logout(); setLocation("/auth"); };
 
   const handleCreateRoom = async () => {
     if (!sellerUsername.trim()) {
@@ -111,10 +144,7 @@ export default function BuyerDashboard() {
     try {
       const res = await fetch("/api/rooms/request", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${account.token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${account.token}` },
         body: JSON.stringify({
           sellerUsername: sellerUsername.trim(),
           description: description.trim(),
@@ -142,173 +172,224 @@ export default function BuyerDashboard() {
 
   if (!account) return null;
 
+  const negotiating = rooms.filter((r) => r.escrowStatus !== "released");
+  const paid = rooms.filter((r) => r.escrowStatus === "released");
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card px-6 py-3 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-            <ShieldCheck className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="font-bold tracking-tight">Vaultalk</span>
-          <span className="text-border mx-1">|</span>
-          <Badge className="bg-primary/10 text-primary border-primary/20 border text-[11px]">
-            Buyer
-          </Badge>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">
-            <span className="text-foreground font-medium">{account.displayName}</span>
-            <span className="font-mono text-xs ml-1 opacity-60">@{account.username}</span>
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="text-muted-foreground hover:text-foreground gap-1.5 h-8"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            Sign out
-          </Button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background relative">
+      <GradientBackground />
 
-      <main className="max-w-3xl mx-auto px-6 py-8">
-        {/* Title row */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-xl font-bold">Your Negotiations</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Open a new room with any seller to start negotiating.
-            </p>
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* Header */}
+        <header className="glass-card bg-card/60 border-b border-border/60 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-sm">
+              <ShieldCheck className="w-4.5 h-4.5 text-white" />
+            </div>
+            <span className="font-bold tracking-tight text-lg bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Vaultalk
+            </span>
+            <span className="text-border mx-1">|</span>
+            <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/25 border text-[11px]">
+              Buyer
+            </Badge>
           </div>
-          <Button
-            onClick={() => setShowNew((v) => !v)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
-            size="sm"
-          >
-            {showNew ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {showNew ? "Cancel" : "Pay a Seller"}
-          </Button>
-        </div>
-
-        {/* New room form */}
-        {showNew && (
-          <div className="mb-6 bg-card border border-primary/30 rounded-xl p-5 space-y-4">
-            <h2 className="font-semibold text-sm">Start a new negotiation</h2>
-            <div className="space-y-1.5">
-              <Label className="text-sm">Seller username</Label>
-              <Input
-                value={sellerUsername}
-                onChange={(e) => setSellerUsername(e.target.value)}
-                placeholder="e.g. sara_designs"
-                className="bg-input border-border font-mono text-sm"
-                autoFocus
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Ask the seller for their Vaultalk username.
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">What do you need? (optional)</Label>
-              <Input
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g. Logo design for my brand"
-                className="bg-input border-border"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">Your budget in SAR (optional)</Label>
-              <Input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="e.g. 1500"
-                className="bg-input border-border"
-              />
-            </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground hidden sm:block">
+              <span className="text-foreground font-medium">{account.displayName}</span>
+              <span className="font-mono text-xs ml-1 opacity-60">@{account.username}</span>
+            </span>
             <Button
-              onClick={handleCreateRoom}
-              disabled={creating}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="w-8 h-8 text-muted-foreground hover:text-foreground"
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             >
-              {creating ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" /> Opening room…
-                </>
-              ) : (
-                <>
-                  Open Negotiation Room <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-foreground gap-1.5 h-8"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Sign out
             </Button>
           </div>
-        )}
+        </header>
 
-        {/* Rooms list */}
-        {loading ? (
-          <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-            <RefreshCw className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Loading rooms…</span>
-          </div>
-        ) : rooms.length === 0 ? (
-          <div className="text-center py-16">
-            <Package className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-            <p className="text-muted-foreground text-sm">No active negotiations.</p>
-            <p className="text-muted-foreground text-xs mt-1">
-              Click "Pay a Seller" above to start one.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {rooms.map((room) => (
-              <div
-                key={room.roomId}
-                className="bg-card border border-border rounded-xl p-4 flex items-start gap-4 hover:border-primary/30 transition-colors"
-              >
-                <div className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-emerald-400">
-                    {room.counterpartName[0]?.toUpperCase()}
-                  </span>
+        {/* Body: sidebar + main */}
+        <div className="flex flex-1 min-h-0">
+          {/* Sidebar — Paid deals */}
+          <aside className="w-72 flex-shrink-0 border-r border-border/60 glass-card bg-sidebar/50 flex flex-col">
+            <div className="px-4 py-4 border-b border-border/40">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                  <Banknote className="w-3.5 h-3.5 text-emerald-400" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm">{room.counterpartName}</span>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      @{room.counterpartUsername}
-                    </span>
-                    {escrowBadge(room.escrowStatus)}
+                <span className="text-sm font-semibold">Completed Deals</span>
+                {paid.length > 0 && (
+                  <span className="ml-auto text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 rounded-full px-2 py-0.5 font-medium">
+                    {paid.length}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {paid.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  <div className="w-10 h-10 rounded-full bg-muted/40 flex items-center justify-center mb-3">
+                    <CheckCircle className="w-5 h-5 text-muted-foreground opacity-40" />
                   </div>
-                  {room.description && (
-                    <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                      {room.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-3 mt-1.5">
-                    {room.amount !== null && (
-                      <span className="text-xs font-semibold text-emerald-400">
-                        {room.amount.toLocaleString()} {room.currency}
-                      </span>
+                  <p className="text-xs text-muted-foreground">No completed deals yet.</p>
+                  <p className="text-[11px] text-muted-foreground opacity-60 mt-1">
+                    Paid rooms will appear here.
+                  </p>
+                </div>
+              ) : (
+                paid.map((room) => (
+                  <button
+                    key={room.roomId}
+                    onClick={() => setLocation(`/room/${room.roomId}`)}
+                    className="w-full text-left glass-card bg-card/50 border border-emerald-500/15 rounded-xl p-3 hover:border-emerald-500/30 hover:bg-card/70 transition-all duration-150"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-7 h-7 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-emerald-400">
+                          {room.counterpartName[0]?.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate">{room.counterpartName}</p>
+                        <p className="text-[11px] text-muted-foreground font-mono truncate">
+                          @{room.counterpartUsername}
+                        </p>
+                      </div>
+                    </div>
+                    {room.description && (
+                      <p className="text-[11px] text-muted-foreground truncate mt-1">{room.description}</p>
                     )}
-                    <span className="text-[11px] text-muted-foreground">
-                      {new Date(room.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
+                    <div className="flex items-center justify-between mt-1.5">
+                      {room.amount !== null ? (
+                        <span className="text-xs font-semibold text-emerald-400">
+                          {room.amount.toLocaleString()} {room.currency}
+                        </span>
+                      ) : <span />}
+                      <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 border text-[10px] px-1.5">
+                        <CheckCircle className="w-2 h-2 mr-0.5" /> Paid
+                      </Badge>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </aside>
+
+          {/* Main — active negotiations */}
+          <main className="flex-1 overflow-y-auto px-6 py-6">
+            <div className="max-w-2xl mx-auto">
+              {/* Title row */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-300 via-pink-300 to-violet-300 bg-clip-text text-transparent">
+                    Active Negotiations
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Open a new room with any seller to start negotiating.
+                  </p>
                 </div>
                 <Button
+                  onClick={() => setShowNew((v) => !v)}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0 gap-1.5 shadow-sm"
                   size="sm"
-                  onClick={() => setLocation(`/room/${room.roomId}`)}
-                  className="flex-shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
                 >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  Open Chat
+                  {showNew ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                  {showNew ? "Cancel" : "Pay a Seller"}
                 </Button>
               </div>
-            ))}
-          </div>
-        )}
-      </main>
+
+              {/* New room form */}
+              {showNew && (
+                <div className="mb-6 glass-card bg-card/70 border border-purple-500/25 rounded-2xl p-5 space-y-4">
+                  <h2 className="font-semibold text-sm">Start a new negotiation</h2>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Seller username</Label>
+                    <Input
+                      value={sellerUsername}
+                      onChange={(e) => setSellerUsername(e.target.value)}
+                      placeholder="e.g. sara_designs"
+                      className="bg-input/60 border-border font-mono text-sm"
+                      autoFocus
+                    />
+                    <p className="text-[11px] text-muted-foreground">Ask the seller for their Vaultalk username.</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">What do you need? (optional)</Label>
+                    <Input
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="e.g. Logo design for my brand"
+                      className="bg-input/60 border-border"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Your budget in SAR (optional)</Label>
+                    <Input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="e.g. 1500"
+                      className="bg-input/60 border-border"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleCreateRoom}
+                    disabled={creating}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0 gap-2"
+                  >
+                    {creating ? (
+                      <><RefreshCw className="w-4 h-4 animate-spin" /> Opening room…</>
+                    ) : (
+                      <>Open Negotiation Room <ArrowRight className="w-4 h-4" /></>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Rooms list */}
+              {loading ? (
+                <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">Loading rooms…</span>
+                </div>
+              ) : negotiating.length === 0 ? (
+                <div className="text-center py-20">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/15 flex items-center justify-center mx-auto mb-4">
+                    <Package className="w-7 h-7 text-muted-foreground opacity-50" />
+                  </div>
+                  <p className="text-muted-foreground text-sm font-medium">No active negotiations</p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    Click "Pay a Seller" above to start one.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {negotiating.map((room) => (
+                    <RoomCard
+                      key={room.roomId}
+                      room={room}
+                      onOpen={() => setLocation(`/room/${room.roomId}`)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
