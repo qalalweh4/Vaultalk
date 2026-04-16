@@ -36,6 +36,7 @@ export interface Escrow {
   paymentLinkId: string | null;
   clientId: string | null;
   freelancerId: string | null;
+  invoiceNumber: string | null;
 }
 
 const users = new Map<string, User>();
@@ -174,6 +175,7 @@ function initEscrow(roomId: string) {
       paymentLinkId: null,
       clientId: null,
       freelancerId: null,
+      invoiceNumber: null,
     });
   }
 }
@@ -261,6 +263,7 @@ export function lockEscrow(
     paymentLinkId: paymentLinkId ?? null,
     clientId,
     freelancerId,
+    invoiceNumber: null,
   };
   escrows.set(roomId, escrow);
   if (paymentLinkId) linkRoomMap.set(paymentLinkId, roomId);
@@ -269,6 +272,12 @@ export function lockEscrow(
 
 export function getRoomIdByLinkId(linkId: string): string | undefined {
   return linkRoomMap.get(linkId);
+}
+
+/** Stores the StreamPay invoice number on an escrow once it becomes known. */
+export function setEscrowInvoiceNumber(roomId: string, invoiceNumber: string): void {
+  const escrow = escrows.get(roomId);
+  if (escrow) escrow.invoiceNumber = invoiceNumber;
 }
 
 /** Returns all escrows currently in "locked" state that have a StreamPay payment link ID. */
@@ -297,6 +306,7 @@ export function releaseEscrow(roomId: string): Escrow {
       paymentLinkId: null,
       clientId: null,
       freelancerId: null,
+      invoiceNumber: null,
     }
   );
 }

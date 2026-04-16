@@ -116,14 +116,18 @@ router.post("/contract/export", async (req, res): Promise<void> => {
   };
 
   const exportRoom = store.getOrCreateRoom(roomId);
+  const exportBuyerAccount = store.getAccountById(exportRoom.buyerId ?? "");
   const exportSellerAccount = store.getAccountById(exportRoom.sellerId ?? "");
+  const exportClientName = exportBuyerAccount?.username ?? clientName;
   const exportMerchantName = exportSellerAccount?.username ?? freelancerName;
+  const exportEscrow = store.getEscrow(roomId);
 
   const pdfBuffer = await generateBilingualPdf(
     fullTerms,
-    clientName,
+    exportClientName,
     exportMerchantName,
     roomId,
+    exportEscrow?.invoiceNumber ?? null,
   );
 
   const fileName = `vaultalk-contract-${roomId}.pdf`;
@@ -164,11 +168,14 @@ router.post("/contract/download-pdf", async (req, res): Promise<void> => {
     summary: terms.summary ?? null,
   };
 
+  const downloadEscrow = store.getEscrow(roomId);
+
   const pdfBuffer = await generateBilingualPdf(
     fullTerms,
     resolvedClientName,
     resolvedFreelancerName,
     roomId,
+    downloadEscrow?.invoiceNumber ?? null,
   );
 
   const fileName = `vaultalk-contract-${roomId}.pdf`;

@@ -125,6 +125,57 @@ async function createLink(
 }
 
 /**
+ * Attempts to find the StreamPay invoice number for a payment link.
+ * First checks the payment link object itself; if not present there,
+ * searches the invoices endpoint filtering by payment_link_id.
+ * Returns null if the invoice number cannot be determined.
+ */
+export async function fetchInvoiceNumberForLink(linkId: string): Promise<string | null> {
+  if (!process.env.STREAMPAY_API_KEY) return null;
+  try {
+    // 1. Try the payment link object directly
+    const linkResp = await fetch(
+      `${STREAMPAY_BASE_URL}/api/v2/payment_links/${encodeURIComponent(linkId)}`,
+      { headers: apiHeaders() },
+    );
+    if (linkResp.ok) {
+      const linkData = (await linkResp.json()) as {
+        invoice_number?: string;
+        invoice_id?: string;
+        invoice?: { number?: string; id?: string };
+      };
+      const fromLink =
+        linkData.invoice_number ??
+        linkData.invoice?.number ??
+        linkData.invoice_id ??
+        linkData.invoice?.id ??
+        null;
+      if (fromLink) return fromLink;
+    }
+
+    // 2. Fall back: query invoices filtered by payment_link_id
+    const invResp = await fetch(
+      `${STREAMPAY_BASE_URL}/api/v2/invoices?payment_link_id=${encodeURIComponent(linkId)}&limit=1`,
+      { headers: apiHeaders() },
+    );
+    if (invResp.ok) {
+      const invData = (await invResp.json()) as {
+        data?: Array<{ invoice_number?: string; number?: string; id?: string }>;
+        results?: Array<{ invoice_number?: string; number?: string; id?: string }>;
+      };
+      const items = invData.data ?? invData.results ?? [];
+      const first = items[0];
+      if (first) {
+        return first.invoice_number ?? first.number ?? first.id ?? null;
+      }
+    }
+  } catch (err) {
+    logger.error({ err, linkId }, "StreamPay: error fetching invoice number");
+  }
+  return null;
+}
+
+/**
  * Full flow: create a product then a payment link for that product.
  * Returns the checkout URL and payment link ID.
  */

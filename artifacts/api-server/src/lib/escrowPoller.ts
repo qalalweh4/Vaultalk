@@ -14,6 +14,7 @@
 import { logger } from "./logger";
 import * as store from "./store";
 import { sendSystemMessage, isStreamEnabled } from "./streamchat";
+import { fetchInvoiceNumberForLink } from "./streampay";
 
 const STREAMPAY_BASE_URL = "https://stream-app-service.streampay.sa";
 const POLL_INTERVAL_MS = 10_000; // 10 seconds — fast enough for a demo
@@ -25,7 +26,12 @@ function apiHeaders() {
   };
 }
 
-async function checkLinkStatus(linkId: string): Promise<string | null> {
+interface LinkCheckResult {
+  status: string;
+  invoiceNumber: string | null;
+}
+
+async function checkLinkStatus(linkId: string): Promise<LinkCheckResult | null> {
   try {
     const resp = await fetch(
       `${STREAMPAY_BASE_URL}/api/v2/payment_links/${encodeURIComponent(linkId)}`,
@@ -35,8 +41,19 @@ async function checkLinkStatus(linkId: string): Promise<string | null> {
       logger.warn({ linkId, status: resp.status }, "escrowPoller: payment link fetch failed");
       return null;
     }
-    const data = (await resp.json()) as { status?: string };
-    return (data.status ?? "").toLowerCase();
+    const data = (await resp.json()) as {
+      status?: string;
+      invoice_number?: string;
+      invoice_id?: string;
+      invoice?: { number?: string; id?: string };
+    };
+    const invoiceNumber =
+      data.invoice_number ??
+      data.invoice?.number ??
+      data.invoice_id ??
+      data.invoice?.id ??
+      null;
+    return { status: (data.status ?? "").toLowerCase(), invoiceNumber };
   } catch (err) {
     logger.error({ err, linkId }, "escrowPoller: error fetching payment link");
     return null;
@@ -49,12 +66,23 @@ async function pollOnce() {
 
   await Promise.allSettled(
     locked.map(async ({ roomId, paymentLinkId }) => {
-      const status = await checkLinkStatus(paymentLinkId);
-      if (!status) return;
+      const result = await checkLinkStatus(paymentLinkId);
+      if (!result) return;
+
+      const { status, invoiceNumber: linkInvoiceNumber } = result;
 
       if (status === "paid" || status === "completed") {
         store.releaseEscrow(roomId);
         logger.info({ roomId, paymentLinkId, status }, "escrowPoller: releasing escrow");
+
+        // Capture the invoice number: prefer what came back inline, then dedicated lookup.
+        const invoiceNumber =
+          linkInvoiceNumber ?? (await fetchInvoiceNumberForLink(paymentLinkId));
+        if (invoiceNumber) {
+          store.setEscrowInvoiceNumber(roomId, invoiceNumber);
+          logger.info({ roomId, invoiceNumber }, "escrowPoller: stored invoice number");
+        }
+
         if (isStreamEnabled()) {
           const isFirst = store.markReleaseNotified(roomId);
           if (isFirst) {

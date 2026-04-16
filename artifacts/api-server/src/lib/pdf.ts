@@ -6,6 +6,7 @@ export async function generateBilingualPdf(
   clientName: string,
   merchantName: string,
   roomId: string,
+  invoiceNumber?: string | null,
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -24,7 +25,7 @@ export async function generateBilingualPdf(
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    renderEnglishSection(doc, terms, clientName, merchantName, roomId);
+    renderEnglishSection(doc, terms, clientName, merchantName, roomId, invoiceNumber ?? null);
 
     doc.end();
   });
@@ -36,6 +37,7 @@ function renderEnglishSection(
   clientName: string,
   merchantName: string,
   roomId: string,
+  invoiceNumber: string | null,
 ): void {
   const pageWidth = doc.page.width;
   const margin = 50;
@@ -75,6 +77,13 @@ function renderEnglishSection(
       width: contentWidth,
       align: "left",
     });
+
+  if (invoiceNumber) {
+    doc.text(`Stream's Invoice Number: ${invoiceNumber}`, margin, doc.y, {
+      width: contentWidth,
+      align: "left",
+    });
+  }
 
   doc.text(`Date: ${date}`, margin, doc.y, {
     width: contentWidth,

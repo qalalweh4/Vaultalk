@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { LockPaymentBody, ReleasePaymentBody } from "@workspace/api-zod";
 import * as store from "../lib/store";
-import { createPaymentLink, isStreamPayEnabled } from "../lib/streampay";
+import { createPaymentLink, isStreamPayEnabled, fetchInvoiceNumberForLink } from "../lib/streampay";
 import { sendSystemMessage, isStreamEnabled } from "../lib/streamchat";
 import { generateContractText, generateContractTextArabic } from "../lib/ai";
 
@@ -104,6 +104,18 @@ router.post("/payments/webhook", async (req, res): Promise<void> => {
 
   if (SUCCESS_EVENTS.includes(eventType)) {
     store.releaseEscrow(roomId);
+
+    // Capture invoice number from the webhook payload or via a dedicated lookup
+    const invoiceNumberFromPayload =
+      data.invoice_number ??
+      data.invoice?.number ??
+      payload.invoice_number ??
+      null;
+    const invoiceNumber =
+      invoiceNumberFromPayload ??
+      (linkId ? await fetchInvoiceNumberForLink(linkId) : null);
+    if (invoiceNumber) store.setEscrowInvoiceNumber(roomId, invoiceNumber);
+
     if (isStreamEnabled()) {
       const isFirst = store.markReleaseNotified(roomId);
       if (isFirst) {
