@@ -5,6 +5,7 @@ import roomsRouter from "./rooms";
 import contractRouter from "./contract";
 import paymentsRouter from "./payments";
 import marketRouter from "./market";
+import deliverablesRouter from "./deliverables";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(roomsRouter);
 router.use(contractRouter);
 router.use(paymentsRouter);
 router.use(marketRouter);
+router.use(deliverablesRouter);
 
 export default router;

@@ -26,7 +26,7 @@ function DashboardRedirect() {
   useEffect(() => {
     if (!account) {
       setLocation("/auth");
-    } else if (account.role === "seller") {
+    } else if (account.role === "seller" || account.role === "freelancer") {
       setLocation("/seller");
     } else {
       setLocation("/buyer");

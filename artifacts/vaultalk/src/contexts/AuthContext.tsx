@@ -3,7 +3,7 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 export interface AuthAccount {
   userId: string;
   username: string;
-  role: "buyer" | "seller";
+  role: "buyer" | "seller" | "freelancer";
   displayName: string;
   token: string;
   streamToken: string;
@@ -15,7 +15,7 @@ interface AuthContextValue {
   register: (
     username: string,
     password: string,
-    role: "buyer" | "seller",
+    role: "buyer" | "seller" | "freelancer",
     displayName: string,
   ) => Promise<void>;
   logout: () => void;
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (
     username: string,
     password: string,
-    role: "buyer" | "seller",
+    role: "buyer" | "seller" | "freelancer",
     displayName: string,
   ) => {
     const res = await fetch("/api/auth/register", {

@@ -20,7 +20,7 @@ export default function AuthPage() {
   const { toast } = useToast();
 
   const [mode, setMode] = useState<Mode>("login");
-  const [role, setRole] = useState<"buyer" | "seller">("buyer");
+  const [role, setRole] = useState<"buyer" | "seller" | "freelancer">("buyer");
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -111,7 +111,7 @@ export default function AuthPage() {
           {mode === "register" && (
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">I am a…</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <RoleCard
                   active={role === "buyer"}
                   onClick={() => setRole("buyer")}
@@ -124,7 +124,14 @@ export default function AuthPage() {
                   onClick={() => setRole("seller")}
                   emoji="🎨"
                   label="Seller"
-                  description="I deliver work"
+                  description="I list products"
+                />
+                <RoleCard
+                  active={role === "freelancer"}
+                  onClick={() => setRole("freelancer")}
+                  emoji="🛠️"
+                  label="Freelancer"
+                  description="I build & deliver"
                 />
               </div>
             </div>

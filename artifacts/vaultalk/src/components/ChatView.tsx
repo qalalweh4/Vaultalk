@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Wifi, WifiOff } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Send, Wifi, WifiOff, Paperclip, Lock, FileDown, CheckCircle2, Loader2 } from "lucide-react";
 import type { UserData } from "@/contexts/UserContext";
 
 interface ChatMessage {
@@ -13,12 +14,16 @@ interface ChatMessage {
   role: "client" | "freelancer" | "system";
   text: string;
   timestamp: Date;
+  isFile?: boolean;
+  fileName?: string;
+  fileUrl?: string;
 }
 
 interface ChatViewProps {
   roomId: string;
   user: UserData;
   onMessagesUpdate: (messages: string[]) => void;
+  onDeliverableUploaded?: () => void;
 }
 
 function buildSystemMsg(text: string): ChatMessage {
@@ -33,19 +38,26 @@ function buildSystemMsg(text: string): ChatMessage {
 }
 
 const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY as string | undefined;
+const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
-export default function ChatView({ roomId, user, onMessagesUpdate }: ChatViewProps) {
+export default function ChatView({ roomId, user, onMessagesUpdate, onDeliverableUploaded }: ChatViewProps) {
   const { toast } = useToast();
+  const { account } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [streamConnected, setStreamConnected] = useState(false);
+  const [isEscrowReleased, setIsEscrowReleased] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [channelRef, setChannelRef] = useState<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clientRef = useRef<any>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isFreelancer = user.role === "freelancer";
 
   const addMessage = useCallback((msg: ChatMessage) => {
     setMessages((prev) => [...prev, msg]);
@@ -58,10 +70,27 @@ export default function ChatView({ roomId, user, onMessagesUpdate }: ChatViewPro
   useEffect(() => {
     onMessagesUpdate(
       messages
-        .filter((m) => m.role !== "system")
+        .filter((m) => m.role !== "system" && !m.isFile)
         .map((m) => `${m.userName} (${m.role}): ${m.text}`)
     );
   }, [messages, onMessagesUpdate]);
+
+  // Poll escrow status so file messages can unlock for client after payment
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const res = await fetch(`${BASE}/api/rooms/${roomId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const status = data?.escrow?.status;
+          if (status === "released") setIsEscrowReleased(true);
+        }
+      } catch { /* ignore */ }
+    };
+    poll();
+    const id = setInterval(poll, 10000);
+    return () => clearInterval(id);
+  }, [roomId]);
 
   useEffect(() => {
     if (!STREAM_API_KEY || !user.streamToken) {
@@ -85,7 +114,6 @@ export default function ChatView({ roomId, user, onMessagesUpdate }: ChatViewPro
 
         const channel = chatClient.channel("messaging", roomId);
 
-        // Retry watch() up to 10 times (30s) in case the channel is still being set up
         let state: Awaited<ReturnType<typeof channel.watch>> | null = null;
         for (let attempt = 0; attempt < 10; attempt++) {
           if (cancelled) return;
@@ -109,38 +137,35 @@ export default function ChatView({ roomId, user, onMessagesUpdate }: ChatViewPro
         const isAllowedForMe = (m: any) =>
           !(m?.client_only === true) || user.role === "client";
 
-        const existing = (state.messages ?? [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const parseMsg = (m: any): ChatMessage => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((m: any) => isAllowedForMe(m))
-          .map(
-            (m): ChatMessage => ({
-              id: m.id,
-              userId: m.user?.id ?? "unknown",
-              userName: m.user?.name ?? "Unknown",
-              role: (m.user?.id?.endsWith("_client") ? "client" : "freelancer") as
-                | "client"
-                | "freelancer",
-              text: m.text ?? "",
-              timestamp: new Date(m.created_at ?? Date.now()),
-            })
-          );
+          const isFile = (m as any).freelancer_file === true;
+          return {
+            id: m.id,
+            userId: m.user?.id ?? "unknown",
+            userName: m.user?.name ?? "Unknown",
+            role: (m.user?.id?.endsWith("_client") ? "client" : "freelancer") as "client" | "freelancer",
+            text: m.text ?? "",
+            timestamp: new Date(m.created_at ?? Date.now()),
+            isFile,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            fileName: (m as any).file_name ?? undefined,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            fileUrl: (m as any).file_url ?? undefined,
+          };
+        };
+
+        const existing = (state.messages ?? [])
+          .filter((m) => isAllowedForMe(m))
+          .map(parseMsg);
         setMessages(existing);
 
         const { unsubscribe } = channel.on("message.new", (event) => {
           if (!event.message) return;
-          // Skip client-only messages if the current user is not the client
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           if ((event.message as any).client_only === true && user.role !== "client") return;
-          const msg: ChatMessage = {
-            id: event.message.id,
-            userId: event.message.user?.id ?? "unknown",
-            userName: event.message.user?.name ?? "Unknown",
-            role: (event.message.user?.id?.endsWith("_client")
-              ? "client"
-              : "freelancer") as "client" | "freelancer",
-            text: event.message.text ?? "",
-            timestamp: new Date(event.message.created_at ?? Date.now()),
-          };
+          const msg = parseMsg(event.message);
           setMessages((prev) => {
             if (prev.some((p) => p.id === msg.id)) return prev;
             return [...prev, msg];
@@ -199,6 +224,72 @@ export default function ChatView({ roomId, user, onMessagesUpdate }: ChatViewPro
     setSending(false);
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    setUploading(true);
+    try {
+      let fileUrl: string | null = null;
+
+      // Upload via Stream Chat if connected
+      if (streamConnected && channelRef) {
+        const result = await channelRef.sendFile(file);
+        fileUrl = result.file;
+      }
+
+      // Register with backend
+      if (account?.token) {
+        const regRes = await fetch(`${BASE}/api/rooms/${roomId}/deliverables`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${account.token}`,
+          },
+          body: JSON.stringify({ fileName: file.name, fileUrl: fileUrl ?? `demo://${file.name}` }),
+        });
+        if (!regRes.ok) {
+          throw new Error("Failed to register deliverable");
+        }
+      }
+
+      // Send a gated file message in Stream Chat
+      if (streamConnected && channelRef) {
+        await channelRef.sendMessage({
+          text: `📎 ${file.name}`,
+          freelancer_file: true,
+          file_name: file.name,
+          file_url: fileUrl ?? "",
+        });
+      } else {
+        // Demo mode: add local message
+        addMessage({
+          id: `local-file-${Date.now()}`,
+          userId: user.userId,
+          userName: user.userName,
+          role: user.role,
+          text: `📎 ${file.name}`,
+          timestamp: new Date(),
+          isFile: true,
+          fileName: file.name,
+          fileUrl: fileUrl ?? undefined,
+        });
+      }
+
+      onDeliverableUploaded?.();
+      toast({ title: "File uploaded", description: `"${file.name}" delivered. Client will see it after payment.` });
+    } catch (err) {
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -242,6 +333,61 @@ export default function ChatView({ roomId, user, onMessagesUpdate }: ChatViewPro
             );
           }
 
+          if (msg.isFile) {
+            const isMe = msg.userId === user.userId;
+            const canSeeFile = isFreelancer || isEscrowReleased || isMe;
+            return (
+              <div
+                key={msg.id}
+                className={`flex flex-col gap-1 ${isMe ? "items-end" : "items-start"}`}
+                data-testid={`msg-${msg.id}`}
+              >
+                <div className={`flex items-center gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+                  <span className="text-xs font-medium text-foreground">{msg.userName}</span>
+                  <Badge className="text-[10px] py-0 px-1.5 font-normal border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                    freelancer
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground">
+                    {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+                {canSeeFile ? (
+                  <div className="max-w-[80%] rounded-xl px-3 py-2.5 text-sm bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-emerald-300 truncate">{msg.fileName}</p>
+                      {msg.fileUrl && msg.fileUrl !== "" && !msg.fileUrl.startsWith("demo://") ? (
+                        <a
+                          href={msg.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-emerald-400 underline flex items-center gap-0.5 mt-0.5"
+                        >
+                          <FileDown className="w-3 h-3" />
+                          Download file
+                        </a>
+                      ) : (
+                        <p className="text-[10px] text-emerald-400/70 mt-0.5">
+                          {isMe ? "Uploaded — awaiting client payment" : "Ready to download"}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-w-[80%] rounded-xl px-3 py-2.5 text-sm bg-muted/50 border border-border flex items-center gap-2.5">
+                    <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-foreground/70 truncate">{msg.fileName}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        🔒 Locked — pay to unlock this file
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           const isMe = msg.userId === user.userId;
           return (
             <div
@@ -280,7 +426,29 @@ export default function ChatView({ roomId, user, onMessagesUpdate }: ChatViewPro
       </div>
 
       <div className="p-3 border-t border-border flex-shrink-0">
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFileSelect}
+          accept="*/*"
+        />
+
         <div className="flex gap-2 items-end">
+          {isFreelancer && (
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-11 w-11 flex-shrink-0 border-border text-muted-foreground hover:text-emerald-400 hover:border-emerald-500/50"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              title="Upload deliverable file"
+              data-testid="button-upload-file"
+            >
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+            </Button>
+          )}
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -304,7 +472,12 @@ export default function ChatView({ roomId, user, onMessagesUpdate }: ChatViewPro
           <kbd className="bg-muted px-1 rounded">/agree</kbd>{" "}
           <kbd className="bg-muted px-1 rounded">/release</kbd>{" "}
           <kbd className="bg-muted px-1 rounded">/dispute</kbd>{" "}
-          · Enter to send · Shift+Enter for newline
+          {isFreelancer && (
+            <>
+              · <span className="text-emerald-400/80">📎 Upload files to client</span>{" "}
+            </>
+          )}
+          · Enter to send
         </p>
       </div>
     </div>

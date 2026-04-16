@@ -9,9 +9,16 @@ export interface Account {
   userId: string;
   username: string;
   password: string;
-  role: "buyer" | "seller";
+  role: "buyer" | "seller" | "freelancer";
   displayName: string;
   token: string;
+}
+
+export interface Deliverable {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  uploadedAt: Date;
 }
 
 export interface Room {
@@ -22,9 +29,12 @@ export interface Room {
   createdAt: Date;
   buyerId?: string;
   sellerId?: string;
+  freelancerId?: string;
   description?: string;
   requestAmount?: number;
   requestCurrency?: string;
+  deliverables: Deliverable[];
+  isFreelancerRoom?: boolean;
 }
 
 export interface Escrow {
@@ -50,14 +60,16 @@ const accountsByToken = new Map<string, Account>();
 const accountsById = new Map<string, Account>();
 const sellerRooms = new Map<string, string[]>(); // sellerId -> roomIds
 const buyerRooms = new Map<string, string[]>(); // buyerId -> roomIds
+const freelancerRooms = new Map<string, string[]>(); // freelancerId -> roomIds
 
 // ── Demo accounts seeded at startup ───────────────────────────────────────
 // These match the vaultalkUsername values used in the Souk market seed data.
 function seedAccounts() {
-  const demos: Array<{ username: string; password: string; role: "buyer" | "seller"; displayName: string }> = [
-    { username: "sara2",        password: "demo123", role: "seller", displayName: "Sara Mohammed" },
-    { username: "sara_designs", password: "demo123", role: "seller", displayName: "Sara Designs Studio" },
-    { username: "demo_buyer",   password: "demo123", role: "buyer",  displayName: "Ahmed Al-Rashid" },
+  const demos: Array<{ username: string; password: string; role: "buyer" | "seller" | "freelancer"; displayName: string }> = [
+    { username: "sara2",        password: "demo123", role: "seller",     displayName: "Sara Mohammed" },
+    { username: "sara_designs", password: "demo123", role: "seller",     displayName: "Sara Designs Studio" },
+    { username: "demo_buyer",   password: "demo123", role: "buyer",      displayName: "Ahmed Al-Rashid" },
+    { username: "zaid_dev",     password: "demo123", role: "freelancer", displayName: "Zaid Al-Hassan" },
   ];
   for (const d of demos) {
     if (!accounts.has(d.username)) {
@@ -100,7 +112,7 @@ export function markReleaseNotified(roomId: string): boolean {
 export function registerAccount(
   username: string,
   password: string,
-  role: "buyer" | "seller",
+  role: "buyer" | "seller" | "freelancer",
   displayName: string,
 ): Account | null {
   if (accounts.has(username)) return null;
@@ -111,6 +123,16 @@ export function registerAccount(
   accountsByToken.set(token, account);
   accountsById.set(userId, account);
   return account;
+}
+
+export function addRoomToFreelancer(freelancerId: string, roomId: string): void {
+  const list = freelancerRooms.get(freelancerId) ?? [];
+  if (!list.includes(roomId)) list.push(roomId);
+  freelancerRooms.set(freelancerId, list);
+}
+
+export function getFreelancerRooms(freelancerId: string): string[] {
+  return freelancerRooms.get(freelancerId) ?? [];
 }
 
 export function loginAccount(username: string, password: string): Account | null {
@@ -188,6 +210,7 @@ export function getOrCreateRoom(roomId: string): Room {
       participants: [],
       messages: [],
       createdAt: new Date(),
+      deliverables: [],
     });
     initEscrow(roomId);
   }
@@ -199,9 +222,11 @@ export function getOrCreateRoomWithMeta(
   meta: {
     buyerId?: string;
     sellerId?: string;
+    freelancerId?: string;
     description?: string;
     requestAmount?: number;
     requestCurrency?: string;
+    isFreelancerRoom?: boolean;
   },
 ): Room {
   if (!rooms.has(roomId)) {
@@ -211,11 +236,31 @@ export function getOrCreateRoomWithMeta(
       participants: [],
       messages: [],
       createdAt: new Date(),
+      deliverables: [],
       ...meta,
     });
     initEscrow(roomId);
   }
   return rooms.get(roomId)!;
+}
+
+export function addDeliverable(roomId: string, deliverable: Omit<Deliverable, "id" | "uploadedAt">): Deliverable {
+  const room = getOrCreateRoom(roomId);
+  const full: Deliverable = {
+    id: `del-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    ...deliverable,
+    uploadedAt: new Date(),
+  };
+  room.deliverables.push(full);
+  return full;
+}
+
+export function getDeliverables(roomId: string): Deliverable[] {
+  return rooms.get(roomId)?.deliverables ?? [];
+}
+
+export function getRoomDeliverableCount(roomId: string): number {
+  return rooms.get(roomId)?.deliverables.length ?? 0;
 }
 
 export function addParticipant(roomId: string, user: User): void {

@@ -24,18 +24,21 @@ router.post("/rooms/request", async (req, res): Promise<void> => {
   }
 
   const seller = store.getAccountByUsername(sellerUsername.trim());
-  if (!seller || seller.role !== "seller") {
-    res.status(404).json({ error: "Seller not found" });
+  if (!seller || (seller.role !== "seller" && seller.role !== "freelancer")) {
+    res.status(404).json({ error: "Seller or freelancer not found" });
     return;
   }
 
+  const isFreelancerRoom = seller.role === "freelancer";
   const roomId = `r${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
   store.getOrCreateRoomWithMeta(roomId, {
     buyerId: buyer.userId,
-    sellerId: seller.userId,
+    sellerId: isFreelancerRoom ? undefined : seller.userId,
+    freelancerId: isFreelancerRoom ? seller.userId : undefined,
     description: description?.trim() ?? "",
     requestAmount: amount ? Number(amount) : undefined,
     requestCurrency: currency ?? "SAR",
+    isFreelancerRoom,
   });
 
   // Ensure both users exist in Stream and are in the channel
@@ -45,7 +48,11 @@ router.post("/rooms/request", async (req, res): Promise<void> => {
   await ensureUserInChannel(roomId, buyer.userId, buyer.displayName);
   await ensureUserInChannel(roomId, seller.userId, seller.displayName);
 
-  store.addRoomToSeller(seller.userId, roomId);
+  if (isFreelancerRoom) {
+    store.addRoomToFreelancer(seller.userId, roomId);
+  } else {
+    store.addRoomToSeller(seller.userId, roomId);
+  }
   store.addRoomToBuyer(buyer.userId, roomId);
 
   if (isStreamEnabled()) {
@@ -81,7 +88,9 @@ router.get("/user/rooms", async (req, res): Promise<void> => {
   const roomIds =
     account.role === "seller"
       ? store.getSellerRooms(account.userId)
-      : store.getBuyerRooms(account.userId);
+      : account.role === "freelancer"
+        ? store.getFreelancerRooms(account.userId)
+        : store.getBuyerRooms(account.userId);
 
   const rooms = roomIds
     .map((roomId) => {
@@ -89,7 +98,12 @@ router.get("/user/rooms", async (req, res): Promise<void> => {
       const escrow = store.getEscrow(roomId);
       if (!room) return null;
 
-      const counterpartId = account.role === "seller" ? room.buyerId : room.sellerId;
+      const counterpartId =
+        account.role === "seller"
+          ? room.buyerId
+          : account.role === "freelancer"
+            ? room.buyerId
+            : room.sellerId ?? room.freelancerId;
       const counterpart = counterpartId ? store.getAccountById(counterpartId) : null;
 
       return {
@@ -101,6 +115,8 @@ router.get("/user/rooms", async (req, res): Promise<void> => {
         currency: room.requestCurrency ?? escrow?.currency ?? "SAR",
         escrowStatus: escrow?.status ?? "empty",
         createdAt: room.createdAt,
+        isFreelancerRoom: room.isFreelancerRoom ?? false,
+        deliverableCount: store.getRoomDeliverableCount(roomId),
       };
     })
     .filter(Boolean)

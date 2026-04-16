@@ -20,6 +20,7 @@ export default function NegotiationRoom() {
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const [chatMessages, setChatMessages] = useState<string[]>([]);
+  const [deliverableRefresh, setDeliverableRefresh] = useState(0);
 
   useEffect(() => {
     if (!account) {
@@ -29,6 +30,10 @@ export default function NegotiationRoom() {
 
   const handleMessagesUpdate = useCallback((messages: string[]) => {
     setChatMessages(messages);
+  }, []);
+
+  const handleDeliverableUploaded = useCallback(() => {
+    setDeliverableRefresh((n) => n + 1);
   }, []);
 
   const handleCopyRoomId = () => {
@@ -43,10 +48,15 @@ export default function NegotiationRoom() {
 
   if (!account) return null;
 
+  // Map account role to room participant role
+  // buyer → client, seller → freelancer, freelancer → freelancer
+  const roomRole: "client" | "freelancer" =
+    account.role === "buyer" ? "client" : "freelancer";
+
   const user: UserData = {
     userId: account.userId,
     userName: account.displayName,
-    role: account.role === "buyer" ? "client" : "freelancer",
+    role: roomRole,
     streamToken: account.streamToken,
     roomId,
   };
@@ -88,7 +98,7 @@ export default function NegotiationRoom() {
               }`}
               data-testid="badge-user-role"
             >
-              {user.role === "client" ? "Buyer" : "Seller"}
+              {account.role === "buyer" ? "Buyer" : account.role === "freelancer" ? "Freelancer" : "Seller"}
             </Badge>
             <span className="text-sm font-medium text-foreground" data-testid="text-user-name">
               {user.userName}
@@ -120,10 +130,20 @@ export default function NegotiationRoom() {
 
       <div className="flex flex-1 min-h-0 relative z-10">
         <div className="flex flex-col flex-1 min-w-0" style={{ flex: "3 1 0%" }}>
-          <ChatView roomId={roomId} user={user} onMessagesUpdate={handleMessagesUpdate} />
+          <ChatView
+            roomId={roomId}
+            user={user}
+            onMessagesUpdate={handleMessagesUpdate}
+            onDeliverableUploaded={handleDeliverableUploaded}
+          />
         </div>
         <div className="flex flex-col min-w-0 w-[340px] flex-shrink-0">
-          <TermsPanel roomId={roomId} user={user} messages={chatMessages} />
+          <TermsPanel
+            roomId={roomId}
+            user={user}
+            messages={chatMessages}
+            refreshDeliverables={deliverableRefresh}
+          />
         </div>
       </div>
     </div>

@@ -13,8 +13,8 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     res.status(400).json({ error: "All fields required" });
     return;
   }
-  if (role !== "buyer" && role !== "seller") {
-    res.status(400).json({ error: "Role must be buyer or seller" });
+  if (role !== "buyer" && role !== "seller" && role !== "freelancer") {
+    res.status(400).json({ error: "Role must be buyer, seller, or freelancer" });
     return;
   }
 
