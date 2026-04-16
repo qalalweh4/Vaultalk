@@ -1,0 +1,14 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "xIx3cuZKUd_S9iGpodKUW"
+uri = "file://artifacts/vaultalk/public/vaultalk-logo.svg"
+type = "image"
+title = "Vaultalk Logo — Light / Transparent"
+
+[[outputs]]
+id = "7xtwyAalFWtdJlAAzNSyq"
+uri = "file://artifacts/vaultalk/public/vaultalk-logo-dark.svg"
+type = "image"
+title = "Vaultalk Logo — Dark Background"

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
+  <defs>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#c084fc"/>
+      <stop offset="50%" style="stop-color:#e879f9"/>
+      <stop offset="100%" style="stop-color:#f472b6"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#a855f7" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Dark background -->
+  <rect width="400" height="120" rx="16" fill="#0f0a1e"/>
+
+  <!-- Icon background -->
+  <rect x="8" y="8" width="104" height="104" rx="24" fill="url(#iconGrad)" filter="url(#shadow)"/>
+
+  <!-- Shield shape -->
+  <path d="M60 28 L84 38 L84 60 C84 74 72 84 60 88 C48 84 36 74 36 60 L36 38 Z"
+        fill="none" stroke="white" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Checkmark inside shield -->
+  <polyline points="50,60 57,67 72,52"
+            fill="none" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Wordmark -->
+  <text x="132" y="76"
+        font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+        font-size="56"
+        font-weight="800"
+        letter-spacing="-1"
+        fill="url(#textGrad)">Vaultalk</text>
+</svg>
