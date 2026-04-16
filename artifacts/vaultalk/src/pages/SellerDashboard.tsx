@@ -116,7 +116,7 @@ export default function SellerDashboard() {
 
   useEffect(() => {
     if (!account) { setLocation("/auth"); return; }
-    if (account.role !== "seller") { setLocation("/dashboard"); return; }
+    if (account.role !== "seller" && account.role !== "freelancer") { setLocation("/dashboard"); return; }
     fetchRooms();
     const iv = setInterval(fetchRooms, 10000);
     return () => clearInterval(iv);
@@ -146,7 +146,7 @@ export default function SellerDashboard() {
             </span>
             <span className="text-border mx-1">|</span>
             <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 border text-[11px]">
-              Seller
+              {account.role === "freelancer" ? "Freelancer" : "Seller"}
             </Badge>
           </div>
           <div className="flex items-center gap-3">
@@ -245,7 +245,7 @@ export default function SellerDashboard() {
             {/* Share link at bottom of sidebar */}
             <div className="p-3 border-t border-border/40">
               <p className="text-[11px] text-muted-foreground mb-2 font-medium uppercase tracking-wide">
-                Your seller link
+                {account.role === "freelancer" ? "Your freelancer link" : "Your seller link"}
               </p>
               <div className="flex items-center gap-1.5">
                 <code className="text-[11px] text-primary font-mono bg-primary/10 px-2 py-1.5 rounded-lg flex-1 truncate">
@@ -274,7 +274,9 @@ export default function SellerDashboard() {
                   Active Negotiations
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Buyers who want to work with you will appear here.
+                  {account.role === "freelancer"
+                    ? "Clients who hire you for projects will appear here."
+                    : "Buyers who want to work with you will appear here."}
                 </p>
               </div>
 
@@ -290,7 +292,9 @@ export default function SellerDashboard() {
                   </div>
                   <p className="text-muted-foreground text-sm font-medium">No active negotiations</p>
                   <p className="text-muted-foreground text-xs mt-1">
-                    Share your seller link to get your first request.
+                    {account.role === "freelancer"
+                      ? "Share your freelancer link so clients can hire you."
+                      : "Share your seller link to get your first request."}
                   </p>
                 </div>
               ) : (
