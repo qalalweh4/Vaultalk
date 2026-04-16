@@ -26,6 +26,7 @@ import {
   Lock,
   FileDown,
   ExternalLink,
+  Clock,
 } from "lucide-react";
 import ContractModal from "@/components/ContractModal";
 import SendContractModal from "@/components/SendContractModal";
@@ -84,6 +85,8 @@ export default function TermsPanel({
   });
   const escrowStatus: string =
     (roomData as RoomStatus | undefined)?.escrow?.status ?? "empty";
+  const isFreelancerRoom: boolean =
+    (roomData as (RoomStatus & { isFreelancerRoom?: boolean }) | undefined)?.isFreelancerRoom ?? false;
 
   // Poll deliverables from backend
   const fetchDeliverables = useCallback(async () => {
@@ -110,6 +113,24 @@ export default function TermsPanel({
       fetchDeliverables();
     }
   }, [refreshDeliverables, fetchDeliverables]);
+
+  // Notify client when freelancer first uploads files
+  const prevDelivCount = useRef(0);
+  useEffect(() => {
+    if (
+      user.role === "client" &&
+      isFreelancerRoom &&
+      deliverables.length > 0 &&
+      prevDelivCount.current === 0
+    ) {
+      toast({
+        title: "Files uploaded!",
+        description:
+          "The freelancer has uploaded the deliverables. You can now proceed to payment.",
+      });
+    }
+    prevDelivCount.current = deliverables.length;
+  }, [deliverables.length, user.role, isFreelancerRoom]);
 
   const messagesRef = useRef<string[]>(messages);
   useEffect(() => {
@@ -371,17 +392,29 @@ export default function TermsPanel({
       </div>
 
       <div className="p-4 border-t border-border space-y-2 flex-shrink-0">
-        <Button
-          size="sm"
-          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-          onClick={() => setContractOpen(true)}
-          data-testid="button-view-contract"
-        >
-          <FileCheck className="w-4 h-4" />
-          {isClient && hasDeliverables && !isReleased && escrowStatus === "empty"
-            ? "Lock Payment to Unlock Files"
-            : "View Full Contract"}
-        </Button>
+        {isClient && isFreelancerRoom && !hasDeliverables ? (
+          <div className="w-full flex flex-col items-center justify-center gap-2 px-3 py-3 rounded-lg bg-muted/50 border border-border text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Clock className="w-4 h-4 animate-pulse flex-shrink-0" />
+              Waiting for files
+            </div>
+            <p className="text-[11px] text-center leading-relaxed opacity-70">
+              The freelancer must upload deliverables before payment can proceed.
+            </p>
+          </div>
+        ) : (
+          <Button
+            size="sm"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+            onClick={() => setContractOpen(true)}
+            data-testid="button-view-contract"
+          >
+            <FileCheck className="w-4 h-4" />
+            {isClient && hasDeliverables && !isReleased && escrowStatus === "empty"
+              ? "Lock Payment to Unlock Files"
+              : "View Full Contract"}
+          </Button>
+        )}
 
         {isClient && escrowStatus === "released" && (
           <div
