@@ -6,28 +6,31 @@ import { Scene3 } from "./scenes/Scene3";
 import { Scene4 } from "./scenes/Scene4";
 import { Scene5 } from "./scenes/Scene5";
 import { Scene6 } from "./scenes/Scene6";
+import { Scene7 } from "./scenes/Scene7";
+import { Scene8 } from "./scenes/Scene8";
+import { Scene9 } from "./scenes/Scene9";
 
-const SCENE_DURATIONS = [3500, 4000, 5000, 6500, 4000, 4000];
+// Order: brand → problem → negotiation → gated files → trust →
+//        business model → market segments → monetization → outro
+const SCENES = [Scene1, Scene2, Scene3, Scene4, Scene5, Scene7, Scene8, Scene9, Scene6];
+const SCENE_DURATIONS = [3500, 4000, 5000, 6500, 4000, 5000, 5000, 5000, 4000];
 
 export default function DemoVideo() {
   const [currentScene, setCurrentScene] = useState(0);
 
   useEffect(() => {
     let idx = 0;
+    let timer: ReturnType<typeof setTimeout>;
     function advance() {
-      const duration = SCENE_DURATIONS[idx];
-      const t = setTimeout(() => {
-        idx = (idx + 1) % SCENE_DURATIONS.length;
+      timer = setTimeout(() => {
+        idx = (idx + 1) % SCENES.length;
         setCurrentScene(idx);
         advance();
-      }, duration);
-      return t;
+      }, SCENE_DURATIONS[idx]);
     }
-    const t = advance();
-    return () => clearTimeout(t);
+    advance();
+    return () => clearTimeout(timer);
   }, []);
-
-  const scenes = [Scene1, Scene2, Scene3, Scene4, Scene5, Scene6];
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#0d0a1e]">
@@ -49,7 +52,7 @@ export default function DemoVideo() {
 
       {/* Scene renderer */}
       <AnimatePresence mode="popLayout">
-        {scenes.map((SceneComponent, i) =>
+        {SCENES.map((SceneComponent, i) =>
           currentScene === i ? <SceneComponent key={`scene-${i}`} /> : null
         )}
       </AnimatePresence>
