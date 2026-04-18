@@ -1,6 +1,8 @@
 import { useEffect, useState, type ComponentType } from "react";
 
 import { modules as discoveredModules } from "./.generated/mockup-components";
+import VideoTemplate from "./components/video/VideoTemplate";
+import RecordPage from "./components/video/RecordPage";
 
 type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 
@@ -91,56 +93,35 @@ function getBasePath(): string {
   return import.meta.env.BASE_URL.replace(/\/$/, "");
 }
 
-function getPreviewExamplePath(): string {
-  const basePath = getBasePath();
-  return `${basePath}/preview/ComponentName`;
-}
-
-function Gallery() {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-      <div className="text-center max-w-md">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-3">
-          Component Preview Server
-        </h1>
-        <p className="text-gray-500 mb-4">
-          This server renders individual components for the workspace canvas.
-        </p>
-        <p className="text-sm text-gray-400">
-          Access component previews at{" "}
-          <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
-            {getPreviewExamplePath()}
-          </code>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function getPreviewPath(): string | null {
+function getLocalPath(): string {
   const basePath = getBasePath();
   const { pathname } = window.location;
-  const local =
-    basePath && pathname.startsWith(basePath)
-      ? pathname.slice(basePath.length) || "/"
-      : pathname;
-  const match = local.match(/^\/preview\/(.+)$/);
-  return match ? match[1] : null;
+  return basePath && pathname.startsWith(basePath)
+    ? pathname.slice(basePath.length) || "/"
+    : pathname;
 }
 
 function App() {
-  const previewPath = getPreviewPath();
+  const localPath = getLocalPath();
 
-  if (previewPath) {
+  // /record → full-screen video with recording HUD
+  if (localPath === "/record") {
+    return <RecordPage />;
+  }
+
+  // /preview/<componentPath> → dynamic mockup preview
+  const previewMatch = localPath.match(/^\/preview\/(.+)$/);
+  if (previewMatch) {
     return (
       <PreviewRenderer
-        componentPath={previewPath}
+        componentPath={previewMatch[1]}
         modules={discoveredModules}
       />
     );
   }
 
-  return <Gallery />;
+  // / → Vaultalk demo video (loops continuously)
+  return <VideoTemplate />;
 }
 
 export default App;
