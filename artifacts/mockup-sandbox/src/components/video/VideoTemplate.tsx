@@ -12,7 +12,7 @@ const SCENE_DURATIONS = {
   scene1: 3500, 
   scene2: 4000, 
   scene3: 5000, 
-  scene4: 5000, 
+  scene4: 6500, 
   scene5: 4000,
   scene6: 4000
 };
