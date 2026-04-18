@@ -534,7 +534,7 @@ function Slide11() {
             style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}>{t}</span>
         ))}
       </div>
-      <p className="text-white/20 text-sm tracking-widest uppercase mt-6">Thank you · Streamathon 2025</p>
+      <p className="text-white/20 text-sm tracking-widest uppercase mt-6">Thank you · Streamathon 2026</p>
     </div>
   );
 }
