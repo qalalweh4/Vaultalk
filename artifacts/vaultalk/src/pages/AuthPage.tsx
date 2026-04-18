@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import GradientBackground from "@/components/GradientBackground";
+import DemoVideo from "@/components/demo/DemoVideo";
 
 type Mode = "login" | "register";
 
@@ -245,12 +246,9 @@ export default function AuthPage() {
             {/* 16:9 video container */}
             <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl border border-purple-500/30"
               style={{ paddingBottom: "56.25%" }}>
-              <iframe
-                src="/__mockup/"
-                className="absolute inset-0 w-full h-full"
-                allow="autoplay"
-                title="Vaultalk Demo"
-              />
+              <div className="absolute inset-0">
+                <DemoVideo />
+              </div>
             </div>
 
             <p className="mt-3 text-center text-xs text-white/40">
