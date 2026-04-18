@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import { ShieldCheck, Sparkles, ArrowRight, RefreshCw, Sun, Moon } from "lucide-react";
+import { ShieldCheck, Sparkles, ArrowRight, RefreshCw, Sun, Moon, Play, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,7 @@ export default function AuthPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
 
   const handleSubmit = async () => {
     if (!username.trim() || !password.trim()) {
@@ -83,9 +84,20 @@ export default function AuthPage() {
               Vaultalk
             </span>
           </div>
-          <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">
+          <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto mb-5">
             AI-witnessed contract negotiation with StreamPay escrow.
           </p>
+
+          {/* Watch Demo button */}
+          <button
+            onClick={() => setShowDemo(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 hover:text-purple-200 text-sm font-medium transition-all duration-200 group"
+          >
+            <span className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+              <Play className="w-3 h-3 text-white fill-white ml-0.5" />
+            </span>
+            Watch Demo
+          </button>
         </div>
 
         {/* Card */}
@@ -210,6 +222,43 @@ export default function AuthPage() {
           <span>Powered by Claude AI · StreamPay · Stream Chat</span>
         </div>
       </div>
+
+      {/* Demo video modal */}
+      {showDemo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowDemo(false)}
+        >
+          <div
+            className="relative w-full max-w-5xl mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowDemo(false)}
+              className="absolute -top-10 right-0 flex items-center gap-1.5 text-white/70 hover:text-white text-sm transition-colors"
+            >
+              <X className="w-4 h-4" />
+              Close
+            </button>
+
+            {/* 16:9 video container */}
+            <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl border border-purple-500/30"
+              style={{ paddingBottom: "56.25%" }}>
+              <iframe
+                src="/__mockup/"
+                className="absolute inset-0 w-full h-full"
+                allow="autoplay"
+                title="Vaultalk Demo"
+              />
+            </div>
+
+            <p className="mt-3 text-center text-xs text-white/40">
+              Click anywhere outside to close
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
