@@ -5,15 +5,15 @@ const tiers = [
   {
     name: "Starter",
     price: "Free",
-    note: "+ 5% per deal",
+    note: "+ 1.25% per deal",
     features: ["AI contract extraction", "StreamPay escrow", "Stream Chat", "Up to 5 rooms/mo"],
     color: "#6d28d9",
     highlight: false,
   },
   {
     name: "Pro",
-    price: "99 SAR",
-    note: "/ month + 3% per deal",
+    price: "35 SAR",
+    note: "/ month + 1.25% per deal",
     features: ["Everything in Starter", "Clause templates library", "Priority Claude AI", "Unlimited rooms"],
     color: "#8b5cf6",
     highlight: true,

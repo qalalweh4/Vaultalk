@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 const pillars = [
-  { icon: "💸", title: "Transaction Fee", desc: "5% per escrowed deal", color: "#8b5cf6" },
+  { icon: "💸", title: "Transaction Fee", desc: "1.25% per escrowed deal", color: "#8b5cf6" },
   { icon: "⭐", title: "Premium Plans", desc: "AI clause templates & priority support", color: "#a855f7" },
   { icon: "🏢", title: "Enterprise API", desc: "White-label for platforms", color: "#ec4899" },
   { icon: "🤝", title: "StreamPay Rev-Share", desc: "Revenue split on every escrow", color: "#f472b6" },
