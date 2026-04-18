@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Scene1 } from "./scenes/Scene1";
 import { Scene2 } from "./scenes/Scene2";
 import { Scene3 } from "./scenes/Scene3";
+import { SceneUI } from "./scenes/SceneUI";
 import { Scene4 } from "./scenes/Scene4";
 import { Scene5 } from "./scenes/Scene5";
 import { Scene6 } from "./scenes/Scene6";
@@ -10,10 +11,10 @@ import { Scene7 } from "./scenes/Scene7";
 import { Scene8 } from "./scenes/Scene8";
 import { Scene9 } from "./scenes/Scene9";
 
-// Order: brand → problem → negotiation → gated files → trust →
-//        business model → market segments → monetization → outro
-const SCENES = [Scene1, Scene2, Scene3, Scene4, Scene5, Scene7, Scene8, Scene9, Scene6];
-const SCENE_DURATIONS = [3500, 4000, 5000, 6500, 4000, 5000, 5000, 5000, 4000];
+// Order: brand → problem → negotiation → real UI demo → gated files (abstract)
+//        → trust → business model → market segments → monetization → outro
+const SCENES = [Scene1, Scene2, Scene3, SceneUI, Scene4, Scene5, Scene7, Scene8, Scene9, Scene6];
+const SCENE_DURATIONS = [3500, 4000, 5000, 9000, 6500, 4000, 5000, 5000, 5000, 4000];
 
 export default function DemoVideo() {
   const [currentScene, setCurrentScene] = useState(0);
@@ -34,7 +35,6 @@ export default function DemoVideo() {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#0d0a1e]">
-      {/* Animated gradient orbs */}
       <div className="absolute inset-0">
         <motion.div
           className="absolute w-[60vw] h-[60vw] rounded-full opacity-30 blur-3xl"
@@ -50,7 +50,6 @@ export default function DemoVideo() {
         />
       </div>
 
-      {/* Scene renderer */}
       <AnimatePresence mode="popLayout">
         {SCENES.map((SceneComponent, i) =>
           currentScene === i ? <SceneComponent key={`scene-${i}`} /> : null
