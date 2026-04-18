@@ -51,9 +51,20 @@ export default function DemoVideo() {
         />
       </div>
 
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence>
         {SCENES.map((SceneComponent, i) =>
-          currentScene === i ? <SceneComponent key={`scene-${i}`} /> : null
+          currentScene === i ? (
+            <motion.div
+              key={`scene-${i}`}
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.5, ease: 'easeInOut' }}
+            >
+              <SceneComponent />
+            </motion.div>
+          ) : null
         )}
       </AnimatePresence>
     </div>
