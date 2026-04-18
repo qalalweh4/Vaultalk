@@ -11,6 +11,7 @@ import BuyerDashboard from "@/pages/BuyerDashboard";
 import PayPage from "@/pages/PayPage";
 import NegotiationRoom from "@/pages/NegotiationRoom";
 import NotFound from "@/pages/not-found";
+import PitchPage from "@/pages/PitchPage";
 import { useEffect } from "react";
 
 const queryClient = new QueryClient({
@@ -55,6 +56,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={HomeRedirect} />
+      <Route path="/pitch" component={PitchPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/dashboard" component={DashboardRedirect} />
       <Route path="/seller" component={SellerDashboard} />
