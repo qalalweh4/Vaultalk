@@ -1,5 +1,16 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "rv2c7Xl0hWGzCIYfbzo-K"
+uri = "file://artifacts/mockup-sandbox/public/images/bg-tech-1.png"
+type = "image"
+title = "Purple tech texture"
+
+[[generated]]
+id = "OvBhqTDpEeZZpRpbMDe0W"
+uri = "file://artifacts/mockup-sandbox/public/images/bg-tech-2.png"
+type = "image"
+title = "Dark neon tech texture"
 
 [[outputs]]
 id = "xIx3cuZKUd_S9iGpodKUW"
