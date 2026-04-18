@@ -116,7 +116,7 @@ export function SceneUI() {
     >
       <motion.h2 className="text-2xl font-black text-white tracking-tight"
         initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        See it in action
+        Client-Freelancer Chat
       </motion.h2>
 
       {/* ── two app windows ── */}

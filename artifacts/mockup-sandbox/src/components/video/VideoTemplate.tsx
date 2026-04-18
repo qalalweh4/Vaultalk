@@ -5,6 +5,7 @@ import { Scene2 } from './video_scenes/Scene2';
 import { Scene3 } from './video_scenes/Scene3';
 import { SceneUI } from './video_scenes/SceneUI';
 import { Scene4 } from './video_scenes/Scene4';
+import { SceneKey } from './video_scenes/SceneKey';
 import { Scene5 } from './video_scenes/Scene5';
 import { Scene7 } from './video_scenes/Scene7';
 import { Scene8 } from './video_scenes/Scene8';
@@ -16,7 +17,8 @@ const SCENE_DURATIONS = {
   scene2:   4000,  // The Problem
   scene3:   5000,  // Negotiation + Claude AI
   sceneUI:  9000,  // Real UI split-screen demo
-  scene4:   6500,  // Gated file delivery (abstract)
+  scene4:   6500,  // Highly Encrypted Files
+  sceneKey: 5500,  // Invoice ID = decryption key
   scene5:   4000,  // No disputes / trust
   scene7:   5000,  // Business Model
   scene8:   5000,  // Market Segments
@@ -24,7 +26,7 @@ const SCENE_DURATIONS = {
   scene6:   4000,  // Outro
 };
 
-const SCENES = [Scene1, Scene2, Scene3, SceneUI, Scene4, Scene5, Scene7, Scene8, Scene9, Scene6];
+const SCENES = [Scene1, Scene2, Scene3, SceneUI, Scene4, SceneKey, Scene5, Scene7, Scene8, Scene9, Scene6];
 
 export default function VideoTemplate() {
   const { currentScene } = useVideoPlayer({ durations: SCENE_DURATIONS });

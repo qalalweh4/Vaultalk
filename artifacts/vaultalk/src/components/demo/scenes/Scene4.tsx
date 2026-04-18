@@ -30,7 +30,7 @@ export function Scene4() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        Gated File Delivery
+        Highly Encrypted Files Before Paying
       </motion.h2>
 
       {/* Split view */}

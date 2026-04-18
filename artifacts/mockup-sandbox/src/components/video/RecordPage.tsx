@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import VideoTemplate from "./VideoTemplate";
 
-const TOTAL_DURATION_MS = 3500 + 4000 + 5000 + 9000 + 6500 + 4000 + 5000 + 5000 + 5000 + 4000; // 51 000 ms
+const TOTAL_DURATION_MS = 3500 + 4000 + 5000 + 9000 + 6500 + 5500 + 4000 + 5000 + 5000 + 5000 + 4000; // 56 500 ms
 
 type Status = "idle" | "permission" | "recording" | "done" | "error";
 
