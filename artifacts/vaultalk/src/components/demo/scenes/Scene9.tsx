@@ -13,7 +13,7 @@ const tiers = [
   {
     name: "Pro",
     price: "35 SAR",
-    note: "/ month + 1.25% per deal",
+    note: "/ month + 0.75% per deal",
     features: ["Everything in Starter", "Clause templates library", "Priority Claude AI", "Unlimited rooms"],
     color: "#8b5cf6",
     highlight: true,
